@@ -14,11 +14,11 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/Table';
 
-export interface VariablesTabProps {
+export interface VariablesSectionProps {
   baseConocimientoId: number | string | undefined;
 }
 
-export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }) => {
+export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimientoId }) => {
   const { data: variables, isLoading, isError, error, refetch } = useVariables(baseConocimientoId);
   const { crear, actualizar, eliminar } = useVariablesMutations(baseConocimientoId);
 
@@ -36,7 +36,6 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
       await crear.mutateAsync({
         nombre: data.nombre,
         tipo: data.tipo,
-        valor_por_defecto: data.valor_por_defecto,
         descripcion: data.descripcion,
       });
     }
@@ -58,9 +57,9 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+      <div className="flex flex-col items-center justify-center py-12 text-slate-400">
         <Spinner size="md" />
-        <p className="mt-2 text-xs font-medium">Cargando variables...</p>
+        <p className="mt-2 text-xs font-medium">Cargando variables del dominio...</p>
       </div>
     );
   }
@@ -77,11 +76,15 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      {/* Cabecera de la Sección */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
         <div>
-          <h3 className="text-base font-bold text-slate-900">Variables del Dominio</h3>
-          <p className="text-xs text-slate-500">
-            Conceptos y parámetros que forman parte de las condiciones y conclusiones de las reglas.
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <VariableIcon className="w-5 h-5 text-sky-600" />
+            Variables del Dominio
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Atributos y conceptos que forman parte de las condiciones y conclusiones del sistema.
           </p>
         </div>
 
@@ -115,7 +118,6 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
             <tr>
               <TableHead>Nombre</TableHead>
               <TableHead>Tipo de Dato</TableHead>
-              <TableHead>Valor por Defecto</TableHead>
               <TableHead>Descripción</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </tr>
@@ -128,17 +130,8 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
                 </TableCell>
                 <TableCell>
                   <Badge variant="info" size="sm">
-                    {variable.tipo}
+                    {variable.tipo || variable.tipo_dato || 'TEXTO'}
                   </Badge>
-                </TableCell>
-                <TableCell>
-                  {variable.valor_por_defecto ? (
-                    <code className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-mono">
-                      {variable.valor_por_defecto}
-                    </code>
-                  ) : (
-                    <span className="text-slate-400 text-xs italic">Ninguno</span>
-                  )}
                 </TableCell>
                 <TableCell className="max-w-xs truncate text-xs text-slate-600">
                   {variable.descripcion || '—'}
@@ -151,7 +144,7 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
                         setVariableAEditar(variable);
                         setModalOpen(true);
                       }}
-                      className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
                       title="Editar variable"
                     >
                       <Edit2 className="w-4 h-4" />
@@ -159,7 +152,7 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
                     <button
                       type="button"
                       onClick={() => handleEliminar(variable)}
-                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                       title="Eliminar variable"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -187,8 +180,7 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
             variableAEditar
               ? {
                   nombre: variableAEditar.nombre,
-                  tipo: variableAEditar.tipo,
-                  valor_por_defecto: variableAEditar.valor_por_defecto,
+                  tipo: variableAEditar.tipo || variableAEditar.tipo_dato || 'TEXTO',
                   descripcion: variableAEditar.descripcion,
                 }
               : undefined
@@ -219,4 +211,4 @@ export const VariablesTab: React.FC<VariablesTabProps> = ({ baseConocimientoId }
   );
 };
 
-export default VariablesTab;
+export default VariablesSection;

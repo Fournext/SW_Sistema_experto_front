@@ -1,4 +1,4 @@
-import type { FlowNode, FlowEdge } from '../types/types';
+import type { FlowNode, FlowEdge, NodoVisualBackend } from '../types/types';
 import type { Hecho, Variable, Regla } from '@/features/base-conocimiento/types/types';
 
 export interface GrafoResult {
@@ -36,11 +36,21 @@ export const construirGrafoBaseConocimiento = (
   variables: Variable[] = [],
   reglas: Regla[] = [],
   posicionesGuardadas?: Record<string, { x: number; y: number }>,
-  puntosControlAristas?: Record<string, { x: number; y: number }>
+  puntosControlAristas?: Record<string, { x: number; y: number }>,
+  nodosVisuales?: NodoVisualBackend[]
 ): GrafoResult => {
   const nodes: FlowNode[] = [];
   const edges: FlowEdge[] = [];
   const edgeSet = new Set<string>();
+
+  const visualMap = new Map<string, NodoVisualBackend>();
+  if (Array.isArray(nodosVisuales)) {
+    for (const nv of nodosVisuales) {
+      if (nv?.referencia_id) {
+        visualMap.set(String(nv.referencia_id), nv);
+      }
+    }
+  }
 
   const addEdgeSafe = (edge: FlowEdge) => {
     const key = `${edge.source}_${edge.target}`;
@@ -81,7 +91,12 @@ export const construirGrafoBaseConocimiento = (
     const rawHechoId = hecho.id !== undefined && hecho.id !== null ? String(hecho.id) : '';
     const safeHechoId = rawHechoId || `h_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const nodeId = `hecho_${safeHechoId}`;
-    const pos = posicionesGuardadas?.[nodeId] || { x: 60, y: hvY };
+    const visual = rawHechoId ? visualMap.get(rawHechoId) : undefined;
+    const fallbackPos =
+      visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
+        ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
+        : { x: 60, y: hvY };
+    const pos = posicionesGuardadas?.[nodeId] || fallbackPos;
     const nombreHecho = safeStr(hecho.nombre, `Hecho_${safeHechoId}`);
     const key = nombreHecho.toLowerCase();
 
@@ -91,6 +106,7 @@ export const construirGrafoBaseConocimiento = (
       position: pos,
       data: {
         id: hecho.id,
+        nodoVisualId: visual?.id,
         nombre: nombreHecho,
         valor: safeStr(hecho.valor),
         tipo_dato: safeStr(hecho.tipo_dato, 'TEXTO'),
@@ -117,8 +133,12 @@ export const construirGrafoBaseConocimiento = (
     const nodeId = `variable_${safeVarId}`;
     const nombreVar = safeStr(variable.nombre, `Var_${safeVarId}`);
     const key = nombreVar.toLowerCase();
-
-    const pos = posicionesGuardadas?.[nodeId] || { x: 60, y: hvY };
+    const visual = rawVarId ? visualMap.get(rawVarId) : undefined;
+    const fallbackPos =
+      visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
+        ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
+        : { x: 60, y: hvY };
+    const pos = posicionesGuardadas?.[nodeId] || fallbackPos;
 
     nodes.push({
       id: nodeId,
@@ -126,9 +146,10 @@ export const construirGrafoBaseConocimiento = (
       position: pos,
       data: {
         id: variable.id,
+        nodoVisualId: visual?.id,
         nombre: nombreVar,
-        tipo: safeStr(variable.tipo, 'TEXTO'),
-        valor_por_defecto: safeStr(variable.valor_por_defecto),
+        tipo: safeStr(variable.tipo || variable.tipo_dato, 'TEXTO'),
+        valor_por_defecto: safeStr(variable.valor_por_defecto ?? variable.valor_defecto),
         descripcion: safeStr(variable.descripcion),
       },
     });
@@ -232,7 +253,12 @@ export const construirGrafoBaseConocimiento = (
     const { regla, reglaX, condXList, conclXList } = layout;
     const reglaId = regla.id !== undefined && regla.id !== null ? String(regla.id) : `r_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const reglaNodeId = `regla_${reglaId}`;
-    const reglaPos = posicionesGuardadas?.[reglaNodeId] || { x: reglaX, y: Y_REGLA };
+    const visual = regla.id !== undefined && regla.id !== null ? visualMap.get(String(regla.id)) : undefined;
+    const fallbackPos =
+      visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
+        ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
+        : { x: reglaX, y: Y_REGLA };
+    const reglaPos = posicionesGuardadas?.[reglaNodeId] || fallbackPos;
     const reglaNombre = safeStr(regla.nombre, `Regla_${reglaId}`);
 
     // Nivel 1: NODO REGLA (Principal)
@@ -242,6 +268,7 @@ export const construirGrafoBaseConocimiento = (
       position: reglaPos,
       data: {
         id: regla.id,
+        nodoVisualId: visual?.id,
         nombre: reglaNombre,
         descripcion: safeStr(regla.descripcion),
         prioridad: regla.prioridad ?? 10,
@@ -262,8 +289,13 @@ export const construirGrafoBaseConocimiento = (
       const condNodeId = `cond_${reglaId}_${condId}`;
       condNodeIdsDeEstaRegla.push(condNodeId);
 
+      const visual = cond.id !== undefined && cond.id !== null ? visualMap.get(String(cond.id)) : undefined;
       const defaultX = condXList[i] ?? reglaX + i * 240;
-      const condPos = posicionesGuardadas?.[condNodeId] || { x: defaultX, y: Y_CONDICIONES };
+      const fallbackPos =
+        visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
+          ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
+          : { x: defaultX, y: Y_CONDICIONES };
+      const condPos = posicionesGuardadas?.[condNodeId] || fallbackPos;
 
       const condRaw = cond as unknown as Record<string, unknown>;
 
@@ -323,6 +355,8 @@ export const construirGrafoBaseConocimiento = (
         position: condPos,
         data: {
           id: cond.id,
+          nodoVisualId: visual?.id,
+          reglaId: String(reglaId),
           referencia: referenciaFinal,
           operador,
           valor_esperado: valorEsperado,
@@ -347,6 +381,11 @@ export const construirGrafoBaseConocimiento = (
         targetHandle: 'top',
         label: 'IF',
         animated: true,
+        data: {
+          tipoRelacion: 'IF',
+          reglaId: String(reglaId),
+          condId: cond.id !== undefined && cond.id !== null ? String(cond.id) : undefined,
+        },
         style: { stroke: '#f59e0b', strokeWidth: 2 },
         labelStyle: { fill: '#78350f', fontWeight: 700, fontSize: 9 },
         labelBgStyle: { fill: '#fef3c7', stroke: '#f59e0b', strokeWidth: 1, rx: 4, ry: 4 },
@@ -363,6 +402,12 @@ export const construirGrafoBaseConocimiento = (
           targetHandle: 'left-in',
           label: 'EVALÚA',
           animated: true,
+          data: {
+            tipoRelacion: 'EVALUA',
+            condId: cond.id !== undefined && cond.id !== null ? String(cond.id) : undefined,
+            hechoId: hechoRefId ? String(hechoRefId) : undefined,
+            variableId: varRefId ? String(varRefId) : undefined,
+          },
           style: { stroke: esHecho ? '#10b981' : '#0284c7', strokeWidth: 2 },
           labelStyle: { fill: esHecho ? '#064e3b' : '#075985', fontWeight: 700, fontSize: 8 },
           labelBgStyle: {
@@ -386,8 +431,13 @@ export const construirGrafoBaseConocimiento = (
 
       const conclId = concl.id !== undefined && concl.id !== null ? String(concl.id) : `${reglaId}_cl${j + 1}`;
       const conclNodeId = `concl_${reglaId}_${conclId}`;
+      const visual = concl.id !== undefined && concl.id !== null ? visualMap.get(String(concl.id)) : undefined;
       const defaultX = conclXList[j] ?? reglaX + j * 240;
-      const conclPos = posicionesGuardadas?.[conclNodeId] || { x: defaultX, y: Y_CONCLUSIONES };
+      const fallbackPos =
+        visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
+          ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
+          : { x: defaultX, y: Y_CONCLUSIONES };
+      const conclPos = posicionesGuardadas?.[conclNodeId] || fallbackPos;
 
       const conclRaw = concl as unknown as Record<string, unknown>;
 
@@ -445,6 +495,8 @@ export const construirGrafoBaseConocimiento = (
         position: conclPos,
         data: {
           id: concl.id,
+          nodoVisualId: visual?.id,
+          reglaId: String(reglaId),
           destino: destinoFinal,
           valor_resultante: valorResultante,
         },
@@ -469,6 +521,11 @@ export const construirGrafoBaseConocimiento = (
             targetHandle: 'top',
             label: 'THEN',
             animated: true,
+            data: {
+              tipoRelacion: 'THEN',
+              reglaId: String(reglaId),
+              conclusionId: concl.id !== undefined && concl.id !== null ? String(concl.id) : undefined,
+            },
             style: { stroke: '#a855f7', strokeWidth: 2 },
             labelStyle: { fill: '#581c87', fontWeight: 700, fontSize: 9 },
             labelBgStyle: { fill: '#f3e8ff', stroke: '#a855f7', strokeWidth: 1, rx: 4, ry: 4 },
@@ -485,6 +542,11 @@ export const construirGrafoBaseConocimiento = (
           targetHandle: 'top',
           label: 'THEN',
           animated: true,
+          data: {
+            tipoRelacion: 'THEN',
+            reglaId: String(reglaId),
+            conclusionId: concl.id !== undefined && concl.id !== null ? String(concl.id) : undefined,
+          },
           style: { stroke: '#a855f7', strokeWidth: 2 },
           labelStyle: { fill: '#581c87', fontWeight: 700, fontSize: 9 },
           labelBgStyle: { fill: '#f3e8ff', stroke: '#a855f7', strokeWidth: 1, rx: 4, ry: 4 },
@@ -502,6 +564,12 @@ export const construirGrafoBaseConocimiento = (
           targetHandle: 'right-in',
           label: esDestinoHecho ? 'ACTUALIZA' : 'ASIGNA',
           animated: true,
+          data: {
+            tipoRelacion: esDestinoHecho ? 'ACTUALIZA' : 'ASIGNA',
+            conclusionId: concl.id !== undefined && concl.id !== null ? String(concl.id) : undefined,
+            hechoId: hechoDestId ? String(hechoDestId) : undefined,
+            variableId: varDestId ? String(varDestId) : undefined,
+          },
           style: { stroke: esDestinoHecho ? '#059669' : '#ec4899', strokeWidth: 2 },
           labelStyle: { fill: esDestinoHecho ? '#065f46' : '#9d174d', fontWeight: 700, fontSize: 8 },
           labelBgStyle: {

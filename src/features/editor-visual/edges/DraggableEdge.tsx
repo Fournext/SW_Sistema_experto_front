@@ -6,7 +6,7 @@ import {
   type EdgeProps,
   useReactFlow,
 } from '@xyflow/react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, X } from 'lucide-react';
 
 export interface DraggableEdgeData {
   controlPoint?: { x: number; y: number };
@@ -29,7 +29,7 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
   selected,
   data,
 }) => {
-  const { setEdges, screenToFlowPosition } = useReactFlow();
+  const { setEdges, screenToFlowPosition, deleteElements } = useReactFlow();
   const [isDragging, setIsDragging] = useState(false);
 
   // Calcular ruta predeterminada suave
@@ -126,9 +126,29 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
     [id, setEdges]
   );
 
+  const handleDelete = useCallback(
+    (event: React.MouseEvent) => {
+      event.stopPropagation();
+      event.preventDefault();
+      if (typeof deleteElements === 'function') {
+        deleteElements({ edges: [{ id }] });
+      } else {
+        setEdges((eds) => eds.filter((edge) => edge.id !== id));
+      }
+    },
+    [id, deleteElements, setEdges]
+  );
+
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+      <BaseEdge
+        path={edgePath}
+        markerEnd={markerEnd}
+        style={{
+          ...style,
+          ...(selected ? { strokeWidth: 3, filter: 'drop-shadow(0 0 4px rgba(99, 102, 241, 0.5))' } : {}),
+        }}
+      />
       <EdgeLabelRenderer>
         <div
           style={{
@@ -141,22 +161,33 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
           <div
             onMouseDown={handleMouseDown}
             onDoubleClick={handleDoubleClick}
-            title="Arrastra para mover la relación y desviar la curva | Doble clic para restablecer"
+            title="Arrastra para desviar la curva | Doble clic para restablecer"
             style={{
               backgroundColor: (labelBgStyle?.fill as string) || '#ffffff',
               borderColor: (labelBgStyle?.stroke as string) || '#cbd5e1',
               color: (labelStyle?.fill as string) || '#1e293b',
             }}
-            className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[9px] font-bold shadow-xs select-none transition-shadow cursor-grab active:cursor-grabbing hover:scale-105 ${
+            className={`group/edge flex items-center gap-1 pl-1.5 pr-1 py-0.5 rounded-full border text-[9px] font-bold shadow-xs select-none transition-all cursor-grab active:cursor-grabbing hover:scale-105 ${
               isDragging
                 ? 'ring-2 ring-indigo-500 scale-110 shadow-md cursor-grabbing'
                 : selected || controlPoint
-                ? 'ring-1 ring-slate-400'
-                : ''
+                ? 'ring-2 ring-indigo-400 shadow-sm'
+                : 'hover:shadow-sm'
             }`}
           >
-            <GripVertical className="w-2.5 h-2.5 opacity-60 shrink-0" />
-            <span>{typeof label === 'string' ? label : 'RELACIÓN'}</span>
+            <GripVertical className="w-2.5 h-2.5 opacity-50 shrink-0" />
+            <span className="leading-none">{typeof label === 'string' ? label : 'RELACIÓN'}</span>
+
+            {/* Botón para eliminar la relación */}
+            <button
+              type="button"
+              onClick={handleDelete}
+              title="Eliminar esta relación"
+              className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-slate-400 hover:text-white hover:bg-rose-500 transition-colors cursor-pointer ml-0.5 shrink-0"
+              aria-label="Eliminar relación"
+            >
+              <X className="w-2 h-2" />
+            </button>
           </div>
         </div>
       </EdgeLabelRenderer>

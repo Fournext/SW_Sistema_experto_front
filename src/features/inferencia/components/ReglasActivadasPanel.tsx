@@ -28,7 +28,11 @@ export const ReglasActivadasPanel: React.FC<ReglasActivadasPanelProps> = ({
       ) : (
         <div className="space-y-2.5">
           {reglasActivadas.map((r, index) => {
-            const nombre = r.nombre_regla || r.regla_nombre || r.regla?.nombre || `Regla_${index + 1}`;
+            const nombre =
+              (typeof r.regla === 'string' ? r.regla : r.regla?.nombre) ||
+              r.nombre_regla ||
+              r.regla_nombre ||
+              (r.regla_id ? `Regla_${String(r.regla_id).slice(0, 6)}` : `Regla_${index + 1}`);
 
             return (
               <div

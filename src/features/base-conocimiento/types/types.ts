@@ -16,7 +16,9 @@ export interface Variable {
   id: number | string;
   nombre: string;
   tipo: TipoDato;
+  tipo_dato?: TipoDato;
   valor_por_defecto?: string;
+  valor_defecto?: string;
   descripcion?: string;
   base_conocimiento?: number | string;
   base_conocimiento_id?: number | string;
@@ -28,6 +30,8 @@ export interface Condicion {
   referencia?: string;
   variable_id?: number | string | null;
   hecho_id?: number | string | null;
+  variable_nombre?: string;
+  hecho_nombre?: string;
   operador: OperadorComparacion | string;
   valor_esperado: string;
   orden?: number;
@@ -40,6 +44,8 @@ export interface Conclusion {
   destino?: string;
   hecho_resultante_id?: number | string | null;
   variable_resultante_id?: number | string | null;
+  variable_nombre?: string;
+  hecho_nombre?: string;
   valor_resultante: string;
   regla?: number | string;
   regla_id?: number | string;
@@ -79,7 +85,9 @@ export interface CrearHechoDTO {
 export interface CrearVariableDTO {
   nombre: string;
   tipo: TipoDato;
+  tipo_dato?: TipoDato;
   valor_por_defecto?: string;
+  valor_defecto?: string;
   descripcion?: string;
   base_conocimiento?: number;
 }
@@ -94,13 +102,17 @@ export interface CrearReglaDTO {
 }
 
 export interface CrearCondicionDTO {
-  referencia: string;
-  operador: OperadorComparacion;
+  referencia?: string;
+  operador: OperadorComparacion | string;
   valor_esperado: string;
   orden?: number;
+  variable_id?: number | string | null;
+  hecho_id?: number | string | null;
 }
 
 export interface CrearConclusionDTO {
-  destino: string;
+  destino?: string;
   valor_resultante: string;
+  variable_resultante_id?: number | string | null;
+  hecho_resultante_id?: number | string | null;
 }

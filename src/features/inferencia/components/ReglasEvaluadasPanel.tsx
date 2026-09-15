@@ -27,7 +27,11 @@ export const ReglasEvaluadasPanel: React.FC<ReglasEvaluadasPanelProps> = ({ deta
       ) : (
         <div className="space-y-2.5">
           {detalles.map((detalle, index) => {
-            const nombre = detalle.nombre_regla || detalle.regla_nombre || detalle.regla?.nombre || `Regla_${index + 1}`;
+            const nombre =
+              (typeof detalle.regla === 'string' ? detalle.regla : detalle.regla?.nombre) ||
+              detalle.nombre_regla ||
+              detalle.regla_nombre ||
+              (detalle.regla_id ? `Regla_${String(detalle.regla_id).slice(0, 6)}` : `Regla_${index + 1}`);
             const cumplidas = detalle.condiciones_cumplidas || [];
             const esExitosa = detalle.estado === 'ACTIVADA' || detalle.estado === 'EJECUTADA';
 

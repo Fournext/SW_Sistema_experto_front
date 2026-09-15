@@ -77,10 +77,13 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
         <div>
-          <h3 className="text-base font-bold text-slate-900">Hechos y Proposiciones</h3>
-          <p className="text-xs text-slate-500">
+          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-emerald-600" />
+            Base de Hechos y Proposiciones
+          </h3>
+          <p className="text-xs text-slate-500 mt-0.5">
             Los hechos representan el estado conocido del mundo en un momento determinado.
           </p>
         </div>

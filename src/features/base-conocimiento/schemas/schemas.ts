@@ -1,28 +1,90 @@
 import { z } from 'zod';
 
-export const hechoSchema = z.object({
-  nombre: z
-    .string()
-    .min(1, 'El nombre del hecho es obligatorio')
-    .max(100, 'Máximo 100 caracteres'),
-  valor: z.string().min(1, 'El valor del hecho es obligatorio'),
-  tipo_dato: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO'], {
-    message: 'Selecciona un tipo de dato válido (TEXTO, ENTERO, DECIMAL, BOOLEANO)',
-  }),
-  es_inicial: z.boolean(),
-});
+export const hechoSchema = z
+  .object({
+    nombre: z
+      .string()
+      .min(1, 'El nombre del hecho es obligatorio')
+      .max(100, 'Máximo 100 caracteres'),
+    valor: z.string().min(1, 'El valor del hecho es obligatorio'),
+    tipo_dato: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO'], {
+      message: 'Selecciona un tipo de dato válido (TEXTO, ENTERO, DECIMAL, BOOLEANO)',
+    }),
+    es_inicial: z.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    const val = data.valor.trim();
+    if (data.tipo_dato === 'BOOLEANO') {
+      const lower = val.toLowerCase();
+      if (lower !== 'true' && lower !== 'false') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['valor'],
+          message: 'El valor debe ser "true" o "false" para un hecho booleano',
+        });
+      }
+    } else if (data.tipo_dato === 'ENTERO') {
+      if (!/^-?\d+$/.test(val)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['valor'],
+          message: 'El valor debe ser un número entero válido (sin decimales ni letras)',
+        });
+      }
+    } else if (data.tipo_dato === 'DECIMAL') {
+      if (isNaN(Number(val)) || !/^-?\d+(\.\d+)?$/.test(val)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['valor'],
+          message: 'El valor debe ser un número decimal válido (ej: 12.5)',
+        });
+      }
+    }
+  });
 
-export const variableSchema = z.object({
-  nombre: z
-    .string()
-    .min(1, 'El nombre de la variable es obligatorio')
-    .max(100, 'Máximo 100 caracteres'),
-  tipo: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO'], {
-    message: 'Selecciona un tipo de dato válido (TEXTO, ENTERO, DECIMAL, BOOLEANO)',
-  }),
-  valor_por_defecto: z.string().optional().or(z.literal('')),
-  descripcion: z.string().max(300, 'Máximo 300 caracteres').optional().or(z.literal('')),
-});
+export const variableSchema = z
+  .object({
+    nombre: z
+      .string()
+      .min(1, 'El nombre de la variable es obligatorio')
+      .max(100, 'Máximo 100 caracteres'),
+    tipo: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO'], {
+      message: 'Selecciona un tipo de dato válido (TEXTO, ENTERO, DECIMAL, BOOLEANO)',
+    }),
+    valor_por_defecto: z.string().optional().or(z.literal('')),
+    descripcion: z.string().max(300, 'Máximo 300 caracteres').optional().or(z.literal('')),
+  })
+  .superRefine((data, ctx) => {
+    if (data.valor_por_defecto && data.valor_por_defecto.trim() !== '') {
+      const val = data.valor_por_defecto.trim();
+      if (data.tipo === 'BOOLEANO') {
+        const lower = val.toLowerCase();
+        if (lower !== 'true' && lower !== 'false') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['valor_por_defecto'],
+            message: 'El valor por defecto debe ser "true" o "false"',
+          });
+        }
+      } else if (data.tipo === 'ENTERO') {
+        if (!/^-?\d+$/.test(val)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['valor_por_defecto'],
+            message: 'El valor por defecto debe ser un número entero (sin decimales)',
+          });
+        }
+      } else if (data.tipo === 'DECIMAL') {
+        if (isNaN(Number(val)) || !/^-?\d+(\.\d+)?$/.test(val)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['valor_por_defecto'],
+            message: 'El valor por defecto debe ser un número decimal válido (ej: 0.5)',
+          });
+        }
+      }
+    }
+  });
 
 export const reglaSchema = z.object({
   nombre: z

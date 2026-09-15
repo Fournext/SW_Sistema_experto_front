@@ -40,21 +40,25 @@ export const CondicionNode: React.FC<NodeProps<FlowNode>> = memo(({ data, select
           <GitBranch className="w-3 h-3 text-amber-600" />
           Condición (IF)
         </span>
-        {data.orden !== undefined && (
+        {data.isLocal ? (
+          <span className="text-[9px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full animate-pulse">
+            Pendiente
+          </span>
+        ) : data.orden !== undefined ? (
           <span className="text-[9px] font-bold bg-amber-200/80 text-amber-900 px-1.5 py-0.2 rounded-full">
             #{data.orden}
           </span>
-        )}
+        ) : null}
       </div>
 
       <div className="p-3 font-mono">
-        <div className="text-xs text-slate-800 font-semibold truncate">
-          {data.referencia || 'referencia'}
+        <div className={`text-xs font-semibold truncate ${!data.referencia ? 'text-amber-600 italic' : 'text-slate-800'}`}>
+          {data.referencia || '(Sin vincular)'}
         </div>
         <div className="mt-1 flex items-center gap-1.5 text-xs">
           <span className="font-bold text-amber-600">{data.operador || '=='}</span>
           <span className="bg-amber-50 text-amber-950 font-bold px-1.5 py-0.5 rounded border border-amber-200 text-[11px] truncate max-w-[110px]">
-            {data.valor_esperado !== undefined ? `"${data.valor_esperado}"` : 'valor'}
+            {data.valor_esperado !== undefined && data.valor_esperado !== '' ? `"${data.valor_esperado}"` : 'valor'}
           </span>
         </div>
       </div>

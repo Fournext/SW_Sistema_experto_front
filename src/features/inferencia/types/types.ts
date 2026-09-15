@@ -1,16 +1,17 @@
-import type { Hecho, Regla } from '@/features/base-conocimiento/types/types';
+import type { Regla } from '@/features/base-conocimiento/types/types';
 
-export type EstadoRegla = 'EVALUADA' | 'RECHAZADA' | 'ACTIVADA' | 'EJECUTADA';
-export type EstadoEjecucion = 'INACTIVA' | 'EN_PROGRESO' | 'COMPLETADA' | 'ERROR';
+export type EstadoRegla = 'EVALUADA' | 'RECHAZADA' | 'ACTIVADA' | 'EJECUTADA' | string;
+export type EstadoEjecucion = 'INACTIVA' | 'EN_PROGRESO' | 'COMPLETADA' | 'FINALIZADA' | 'ERROR' | string;
 
 export interface DetalleInferencia {
-  id: number;
-  inferencia?: number;
-  regla?: Regla;
+  id?: number | string;
+  inferencia?: number | string;
+  regla?: string | Regla;
+  regla_id?: string | number;
   nombre_regla?: string;
   regla_nombre?: string;
   estado: EstadoRegla;
-  orden_evaluacion: number;
+  orden_evaluacion?: number;
   condiciones_cumplidas?: boolean[] | string[];
   total_condiciones?: number;
   condiciones_exitosas?: number;
@@ -22,19 +23,20 @@ export interface DetalleInferencia {
 
 export interface HechoDeducido {
   nombre: string;
-  valor: string;
+  valor: string | boolean | number;
   origen_regla?: string;
 }
 
 export interface EjecucionInferencia {
-  id: number;
-  sistema_experto: number;
+  id?: number | string;
+  ejecucion_id?: string | number;
+  sistema_experto?: number;
   fecha_ejecucion?: string;
   created_at?: string;
   estado: EstadoEjecucion;
   conclusion_final?: string;
   factor_certeza_final?: number;
-  hechos_iniciales?: Hecho[];
+  hechos_iniciales?: Array<{ nombre: string; valor: unknown }>;
   hechos_generados?: HechoDeducido[];
   detalles?: DetalleInferencia[];
   reglas_evaluadas?: DetalleInferencia[];

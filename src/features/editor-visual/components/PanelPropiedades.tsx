@@ -9,11 +9,15 @@ import PanelPropiedadesConclusion from './PanelPropiedadesConclusion';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import type { TipoNodo, NodoDatosGenerales } from '../types/types';
+import type { Hecho, Variable, Regla } from '@/features/base-conocimiento/types/types';
 
 export interface PanelPropiedadesProps {
   onGuardarPropiedades: (nodoId: string, nuevosDatos: Partial<NodoDatosGenerales>) => Promise<void> | void;
   onEliminarNodo: (nodoId: string) => Promise<void> | void;
   guardando?: boolean;
+  variables?: Variable[];
+  hechos?: Hecho[];
+  reglas?: Regla[];
 }
 
 const tipoBadgeVariant: Record<TipoNodo, 'success' | 'info' | 'warning' | 'indigo' | 'purple'> = {
@@ -28,6 +32,9 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
   onGuardarPropiedades,
   onEliminarNodo,
   guardando = false,
+  variables = [],
+  hechos = [],
+  reglas = [],
 }) => {
   const { nodoSeleccionado, panelAbierto, cerrarPanel } = useEditorStore();
 
@@ -41,7 +48,7 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
 
   return (
     <aside
-      className="w-80 bg-white border-l border-slate-200 shadow-xl flex flex-col h-full z-20 transition-all duration-200"
+      className="w-[360px] bg-white border-l border-slate-200 shadow-xl flex flex-col h-full z-20 transition-all duration-200"
       aria-label="Panel de propiedades del nodo"
     >
       {/* Header del panel */}
@@ -99,6 +106,9 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
             nodo={nodoSeleccionado}
             onGuardar={handleGuardar}
             loading={guardando}
+            variables={variables}
+            hechos={hechos}
+            reglas={reglas}
           />
         )}
 
@@ -107,6 +117,9 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
             nodo={nodoSeleccionado}
             onGuardar={handleGuardar}
             loading={guardando}
+            variables={variables}
+            hechos={hechos}
+            reglas={reglas}
           />
         )}
       </div>

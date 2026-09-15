@@ -29,7 +29,7 @@ export const InferenciaPage: React.FC = () => {
   const ejecutarInferencia = useEjecutarInferencia(sistemaId);
 
   const [resultadoInferencia, setResultadoInferencia] = useState<EjecucionInferencia | null>(null);
-  const [inferenciaIdActual, setInferenciaIdActual] = useState<number | null>(null);
+  const [inferenciaIdActual, setInferenciaIdActual] = useState<string | number | null>(null);
 
   const { data: detallesApi = [] } = useDetallesInferencia(inferenciaIdActual || undefined);
 
@@ -43,8 +43,9 @@ export const InferenciaPage: React.FC = () => {
       });
 
       setResultadoInferencia(resp);
-      if (resp?.id) {
-        setInferenciaIdActual(resp.id);
+      const idEjecucion = resp?.id || resp?.ejecucion_id;
+      if (idEjecucion) {
+        setInferenciaIdActual(String(idEjecucion));
       }
     } catch {
       // Manejado por react-query
@@ -67,16 +68,36 @@ export const InferenciaPage: React.FC = () => {
 
   // Reglas evaluadas y activadas obtenidas del backend o de la respuesta directa
   const detallesCombinados: DetalleInferencia[] =
-    resultadoInferencia?.detalles ||
-    detallesApi ||
-    resultadoInferencia?.reglas_evaluadas ||
+    (resultadoInferencia?.reglas_evaluadas && resultadoInferencia.reglas_evaluadas.length > 0
+      ? resultadoInferencia.reglas_evaluadas
+      : null) ||
+    (resultadoInferencia?.detalles && resultadoInferencia.detalles.length > 0
+      ? resultadoInferencia.detalles
+      : null) ||
+    (detallesApi && detallesApi.length > 0
+      ? detallesApi
+      : []) ||
     [];
 
-  const reglasActivadas: DetalleInferencia[] =
-    resultadoInferencia?.reglas_activadas ||
-    detallesCombinados.filter(
-      (d) => d.estado === 'ACTIVADA' || d.estado === 'EJECUTADA'
-    );
+  const reglasActivadas: DetalleInferencia[] = (() => {
+    if (resultadoInferencia?.reglas_activadas && resultadoInferencia.reglas_activadas.length > 0) {
+      return resultadoInferencia.reglas_activadas;
+    }
+    const activadasMap = new Map<string, DetalleInferencia>();
+    for (const d of detallesCombinados) {
+      if (d.estado === 'ACTIVADA' || d.estado === 'EJECUTADA') {
+        const key = String(
+          (typeof d.regla === 'string' ? d.regla : d.regla?.nombre) ||
+          d.regla_id ||
+          d.nombre_regla ||
+          d.regla_nombre ||
+          d.id
+        );
+        activadasMap.set(key, d);
+      }
+    }
+    return Array.from(activadasMap.values());
+  })();
 
   const estadoEjecucion = ejecutarInferencia.isPending
     ? 'EN_PROGRESO'
@@ -188,7 +209,7 @@ export const InferenciaPage: React.FC = () => {
 
       {/* Trazabilidad visual tipo Pipeline didáctico */}
       <TrazabilidadFlow
-        totalHechos={hechosIniciales.length}
+        totalHechos={hechosIniciales.length + (resultadoInferencia?.hechos_generados?.length || 0)}
         totalEvaluadas={detallesCombinados.length}
         totalActivadas={reglasActivadas.length}
         tieneConclusion={Boolean(resultadoInferencia?.conclusion_final)}
@@ -197,8 +218,11 @@ export const InferenciaPage: React.FC = () => {
       {/* Grid con las etapas de inferencia */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
-          {/* 1. Hechos iniciales */}
-          <HechosInicialesPanel hechos={hechosIniciales} />
+          {/* 1. Hechos iniciales y generados */}
+          <HechosInicialesPanel
+            hechos={hechosIniciales}
+            hechosGenerados={resultadoInferencia?.hechos_generados}
+          />
 
           {/* 2. Reglas evaluadas */}
           <ReglasEvaluadasPanel detalles={detallesCombinados} />

@@ -40,16 +40,21 @@ export const ConclusionNode: React.FC<NodeProps<FlowNode>> = memo(({ data, selec
           <CheckCircle className="w-3 h-3 text-purple-600" />
           Conclusión (THEN)
         </span>
+        {data.isLocal && (
+          <span className="text-[9px] font-bold bg-purple-600 text-white px-1.5 py-0.5 rounded-full animate-pulse">
+            Pendiente
+          </span>
+        )}
       </div>
 
       <div className="p-3 font-mono">
-        <div className="text-xs text-slate-800 font-semibold truncate">
-          {data.destino || 'variable_destino'}
+        <div className={`text-xs font-semibold truncate ${!data.destino ? 'text-purple-600 italic' : 'text-slate-800'}`}>
+          {data.destino || '(Sin vincular)'}
         </div>
         <div className="mt-1 flex items-center gap-1 text-xs">
           <span className="text-slate-400">=</span>
           <span className="bg-purple-50 text-purple-950 font-bold px-1.5 py-0.5 rounded border border-purple-200 text-[11px] truncate max-w-[120px]">
-            {data.valor_resultante !== undefined ? `"${data.valor_resultante}"` : 'valor'}
+            {data.valor_resultante !== undefined && data.valor_resultante !== '' ? `"${data.valor_resultante}"` : 'valor'}
           </span>
         </div>
       </div>

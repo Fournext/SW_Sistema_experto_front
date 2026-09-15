@@ -11,7 +11,6 @@ import type { FlowNode } from '../types/types';
 const variablePropsSchema = z.object({
   nombre: z.string().min(1, 'El nombre es obligatorio'),
   tipo: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO']),
-  valor_por_defecto: z.string().optional().or(z.literal('')),
   descripcion: z.string().optional().or(z.literal('')),
 });
 
@@ -38,7 +37,6 @@ export const PanelPropiedadesVariable: React.FC<PanelPropiedadesVariableProps> =
     defaultValues: {
       nombre: String(nodo.data.nombre || ''),
       tipo: (nodo.data.tipo as 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO') || 'TEXTO',
-      valor_por_defecto: String(nodo.data.valor_por_defecto || ''),
       descripcion: String(nodo.data.descripcion || ''),
     },
   });
@@ -47,7 +45,6 @@ export const PanelPropiedadesVariable: React.FC<PanelPropiedadesVariableProps> =
     reset({
       nombre: String(nodo.data.nombre || ''),
       tipo: (nodo.data.tipo as 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO') || 'TEXTO',
-      valor_por_defecto: String(nodo.data.valor_por_defecto || ''),
       descripcion: String(nodo.data.descripcion || ''),
     });
   }, [nodo, reset]);
@@ -72,13 +69,6 @@ export const PanelPropiedadesVariable: React.FC<PanelPropiedadesVariableProps> =
         error={errors.tipo?.message}
         required
         {...register('tipo')}
-      />
-
-      <Input
-        label="Valor por Defecto"
-        placeholder="Opcional"
-        error={errors.valor_por_defecto?.message}
-        {...register('valor_por_defecto')}
       />
 
       <Textarea

@@ -31,7 +31,6 @@ export const VariableForm: React.FC<VariableFormProps> = ({
     defaultValues: {
       nombre: initialValues?.nombre || '',
       tipo: initialValues?.tipo || 'TEXTO',
-      valor_por_defecto: initialValues?.valor_por_defecto || '',
       descripcion: initialValues?.descripcion || '',
     },
   });
@@ -46,27 +45,18 @@ export const VariableForm: React.FC<VariableFormProps> = ({
         {...register('nombre')}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Tipo de Variable"
-          options={[
-            { value: 'TEXTO', label: 'Texto (Cualitativo / Categórico)' },
-            { value: 'ENTERO', label: 'Entero (Integer)' },
-            { value: 'DECIMAL', label: 'Decimal (Float / Real)' },
-            { value: 'BOOLEANO', label: 'Booleano (Verdadero / Falso)' },
-          ]}
-          error={errors.tipo?.message}
-          required
-          {...register('tipo')}
-        />
-
-        <Input
-          label="Valor por defecto (Opcional)"
-          placeholder="Ej: normal, 0, false..."
-          error={errors.valor_por_defecto?.message}
-          {...register('valor_por_defecto')}
-        />
-      </div>
+      <Select
+        label="Tipo de Variable"
+        options={[
+          { value: 'TEXTO', label: 'Texto (Cualitativo / Categórico)' },
+          { value: 'ENTERO', label: 'Entero (Integer)' },
+          { value: 'DECIMAL', label: 'Decimal (Float / Real)' },
+          { value: 'BOOLEANO', label: 'Booleano (Verdadero / Falso)' },
+        ]}
+        error={errors.tipo?.message}
+        required
+        {...register('tipo')}
+      />
 
       <Textarea
         label="Descripción pedagógica"

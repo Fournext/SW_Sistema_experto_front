@@ -20,19 +20,19 @@ export const transformBackendToFlow = (
     id: String(n.id),
     type: n.tipo,
     position: {
-      x: n.posicion_x ?? 100,
-      y: n.posicion_y ?? 100,
+      x: Number(n.posicion_x) || 100,
+      y: Number(n.posicion_y) || 100,
     },
     data: {
-      ...n.datos,
-      nombre: n.datos.nombre || `${n.tipo}_${n.id}`,
+      id: n.referencia_id,
+      nombre: `${n.tipo}_${n.id}`,
     },
   }));
 
   const edges: FlowEdge[] = conexionesBackend.map((c) => ({
     id: String(c.id),
-    source: String(c.nodo_origen),
-    target: String(c.nodo_destino),
+    source: String(c.nodo_origen_id || ''),
+    target: String(c.nodo_destino_id || ''),
     animated: true,
     style: { stroke: '#6366f1', strokeWidth: 2 },
   }));
@@ -77,7 +77,7 @@ export const useEditorMutations = (sistemaId: number | string | undefined) => {
   });
 
   const eliminarNodo = useMutation({
-    mutationFn: (id: number | string) => editorVisualService.eliminarNodo(id),
+    mutationFn: (id: number | string) => editorVisualService.eliminarNodo(String(id)),
     onSuccess: invalidar,
   });
 
@@ -90,7 +90,7 @@ export const useEditorMutations = (sistemaId: number | string | undefined) => {
   });
 
   const eliminarConexion = useMutation({
-    mutationFn: (id: number | string) => editorVisualService.eliminarConexion(id),
+    mutationFn: (id: number | string) => editorVisualService.eliminarConexion(String(id)),
     onSuccess: invalidar,
   });
 
