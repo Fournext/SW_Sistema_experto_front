@@ -77,13 +77,13 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
   return (
     <div className="space-y-4">
       {/* Cabecera de la Sección */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-stone-200/80">
         <div>
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <VariableIcon className="w-5 h-5 text-sky-600" />
+          <h3 className="text-base font-bold text-stone-900 flex items-center gap-2 font-serif">
+            <VariableIcon className="w-5 h-5 text-teal-700" />
             Variables del Dominio
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-stone-500 mt-0.5">
             Atributos y conceptos que forman parte de las condiciones y conclusiones del sistema.
           </p>
         </div>
@@ -103,7 +103,7 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
 
       {!variables || variables.length === 0 ? (
         <EmptyState
-          icon={<VariableIcon className="w-8 h-8 text-sky-600" />}
+          icon={<VariableIcon className="w-8 h-8 text-teal-700" />}
           title="No hay variables registradas"
           description="Crea variables para definir los atributos que serán evaluados en tus reglas de inferencia."
           actionText="Crear primera variable"
@@ -125,15 +125,15 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
           <TableBody>
             {variables.map((variable) => (
               <TableRow key={variable.id}>
-                <TableCell className="font-semibold text-slate-900">
+                <TableCell className="font-semibold text-stone-900 font-mono text-xs">
                   {variable.nombre}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="info" size="sm">
+                  <Badge variant="teal" size="sm">
                     {variable.tipo || variable.tipo_dato || 'TEXTO'}
                   </Badge>
                 </TableCell>
-                <TableCell className="max-w-xs truncate text-xs text-slate-600">
+                <TableCell className="max-w-xs truncate text-xs text-stone-600">
                   {variable.descripcion || '—'}
                 </TableCell>
                 <TableCell className="text-right">
@@ -144,7 +144,7 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
                         setVariableAEditar(variable);
                         setModalOpen(true);
                       }}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 text-stone-400 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
                       title="Editar variable"
                     >
                       <Edit2 className="w-4 h-4" />

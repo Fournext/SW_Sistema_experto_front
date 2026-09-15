@@ -50,24 +50,24 @@ export const Modal: React.FC<ModalProps> = ({
       <div className="min-h-screen px-4 text-center flex items-center justify-center">
         {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 bg-stone-950/40 backdrop-blur-xs transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
 
         {/* Modal Dialog */}
         <div
-          className={`inline-block w-full ${sizeClasses[size]} p-6 my-8 text-left align-middle bg-white rounded-2xl shadow-xl transform transition-all relative border border-slate-100`}
+          className={`inline-block w-full ${sizeClasses[size]} p-6 my-8 text-left align-middle bg-white rounded-2xl shadow-xl transform transition-all relative border border-stone-200/90`}
         >
-          <div className="flex items-start justify-between pb-4 border-b border-slate-100">
+          <div className="flex items-start justify-between pb-4 border-b border-stone-100">
             <div>
-              {title && <h3 className="text-lg font-bold text-slate-900">{title}</h3>}
-              {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
+              {title && <h3 className="text-lg font-bold text-stone-900 font-serif tracking-tight">{title}</h3>}
+              {description && <p className="mt-1 text-xs text-stone-500">{description}</p>}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="text-slate-400 hover:text-slate-600 rounded-lg p-1.5 hover:bg-slate-100 transition-colors cursor-pointer"
+              className="text-stone-400 hover:text-stone-700 rounded-lg p-1.5 hover:bg-stone-100 transition-colors cursor-pointer"
               aria-label="Cerrar"
             >
               <X className="w-5 h-5" />

@@ -79,11 +79,11 @@ export const BaseConocimientoPage: React.FC = () => {
             <ArrowLeft className="w-4 h-4" />
             Volver a {sistema?.nombre || 'Detalle del Sistema'}
           </button>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
-            <Database className="w-6 h-6 text-amber-500" />
+          <h2 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5 font-serif">
+            <Database className="w-6 h-6 text-teal-700" />
             Base de Conocimiento
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-stone-500 mt-0.5">
             Estructura declarativa de reglas, base de hechos y variables del sistema.
           </p>
         </div>
@@ -93,7 +93,7 @@ export const BaseConocimientoPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            icon={<Network className="w-3.5 h-3.5 text-sky-600" />}
+            icon={<Network className="w-3.5 h-3.5 text-teal-700" />}
             onClick={() => navigate(`/sistemas/${sistemaId}/editor`)}
           >
             Editor Visual
@@ -101,7 +101,7 @@ export const BaseConocimientoPage: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            icon={<PlayCircle className="w-3.5 h-3.5 text-emerald-600" />}
+            icon={<PlayCircle className="w-3.5 h-3.5 text-emerald-700" />}
             onClick={() => navigate(`/sistemas/${sistemaId}/inferencia`)}
           >
             Motor Inferencia
@@ -110,25 +110,25 @@ export const BaseConocimientoPage: React.FC = () => {
       </div>
 
       {/* Contenedor con 3 Pestañas */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-2xl border border-stone-200/90 shadow-2xs overflow-hidden">
         {/* Barra de Pestañas */}
-        <div className="flex border-b border-slate-200 bg-white px-3 pt-2 gap-2 overflow-x-auto">
+        <div className="flex border-b border-stone-200 bg-white px-3 pt-2 gap-2 overflow-x-auto">
           {/* Pestaña 1: Reglas de Inferencia */}
           <button
             type="button"
             onClick={() => setActiveTab('reglas')}
             className={`flex items-center gap-2.5 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer rounded-t-lg select-none whitespace-nowrap ${
               activeTab === 'reglas'
-                ? 'border-indigo-600 text-indigo-700 bg-indigo-50/50'
-                : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                ? 'border-teal-700 text-teal-900 bg-teal-50/60'
+                : 'border-transparent text-stone-500 hover:text-stone-900 hover:bg-stone-50'
             }`}
           >
-            <Workflow className={`w-4 h-4 ${activeTab === 'reglas' ? 'text-indigo-600' : 'text-slate-400'}`} />
+            <Workflow className={`w-4 h-4 ${activeTab === 'reglas' ? 'text-teal-700' : 'text-stone-400'}`} />
             <span>Reglas</span>
             {reglas !== undefined && (
               <span
                 className={`px-2 py-0.5 text-xs rounded-full font-bold ${
-                  activeTab === 'reglas' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
+                  activeTab === 'reglas' ? 'bg-teal-700 text-white' : 'bg-stone-100 text-stone-600'
                 }`}
               >
                 {reglas.length}
@@ -142,16 +142,16 @@ export const BaseConocimientoPage: React.FC = () => {
             onClick={() => setActiveTab('hechos')}
             className={`flex items-center gap-2.5 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer rounded-t-lg select-none whitespace-nowrap ${
               activeTab === 'hechos'
-                ? 'border-emerald-600 text-emerald-700 bg-emerald-50/50'
-                : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                ? 'border-emerald-700 text-emerald-900 bg-emerald-50/60'
+                : 'border-transparent text-stone-500 hover:text-stone-900 hover:bg-stone-50'
             }`}
           >
-            <FileText className={`w-4 h-4 ${activeTab === 'hechos' ? 'text-emerald-600' : 'text-slate-400'}`} />
+            <FileText className={`w-4 h-4 ${activeTab === 'hechos' ? 'text-emerald-700' : 'text-stone-400'}`} />
             <span>Base de Hechos</span>
             {hechos !== undefined && (
               <span
                 className={`px-2 py-0.5 text-xs rounded-full font-bold ${
-                  activeTab === 'hechos' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600'
+                  activeTab === 'hechos' ? 'bg-emerald-700 text-white' : 'bg-stone-100 text-stone-600'
                 }`}
               >
                 {hechos.length}
@@ -165,16 +165,16 @@ export const BaseConocimientoPage: React.FC = () => {
             onClick={() => setActiveTab('variables')}
             className={`flex items-center gap-2.5 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer rounded-t-lg select-none whitespace-nowrap ${
               activeTab === 'variables'
-                ? 'border-sky-600 text-sky-700 bg-sky-50/50'
-                : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                ? 'border-teal-600 text-teal-900 bg-teal-50/40'
+                : 'border-transparent text-stone-500 hover:text-stone-900 hover:bg-stone-50'
             }`}
           >
-            <VariableIcon className={`w-4 h-4 ${activeTab === 'variables' ? 'text-sky-600' : 'text-slate-400'}`} />
+            <VariableIcon className={`w-4 h-4 ${activeTab === 'variables' ? 'text-teal-600' : 'text-stone-400'}`} />
             <span>Variables</span>
             {variables !== undefined && (
               <span
                 className={`px-2 py-0.5 text-xs rounded-full font-bold ${
-                  activeTab === 'variables' ? 'bg-sky-600 text-white' : 'bg-slate-100 text-slate-600'
+                  activeTab === 'variables' ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-600'
                 }`}
               >
                 {variables.length}

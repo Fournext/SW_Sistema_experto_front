@@ -26,8 +26,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
       isActive
-        ? 'bg-indigo-50 text-indigo-700 font-semibold shadow-2xs'
-        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+        ? 'bg-teal-50/90 text-teal-900 font-semibold shadow-2xs border-r-2 border-teal-700'
+        : 'text-stone-600 hover:bg-stone-100/70 hover:text-stone-900'
     }`;
 
   return (
@@ -35,26 +35,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Mobile backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs lg:hidden"
+          className="fixed inset-0 z-40 bg-stone-950/40 backdrop-blur-xs lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 left-0 bottom-0 z-40 w-64 bg-white border-r border-stone-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         {/* Brand / Logo */}
-        <div className="flex items-center gap-3 h-16 px-6 border-b border-slate-200">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white flex items-center justify-center shadow-md shadow-indigo-200">
+        <div className="flex items-center gap-3 h-16 px-6 border-b border-stone-200">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-800 to-teal-950 text-teal-300 flex items-center justify-center shadow-md shadow-teal-950/15 border border-teal-700/30">
             <Cpu className="w-5 h-5" />
           </div>
           <div>
-            <span className="font-bold text-slate-900 text-base tracking-tight block">
+            <span className="font-bold text-stone-900 text-base tracking-tight block font-serif">
               SE-Docente
             </span>
-            <span className="text-[11px] text-slate-400 font-medium block">
+            <span className="text-[11px] text-stone-500 font-medium block">
               Sistemas Expertos v1.0
             </span>
           </div>
@@ -64,16 +64,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
           {/* General Section */}
           <div>
-            <div className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-stone-400">
               General
             </div>
             <nav className="space-y-1">
               <NavLink to="/sistemas" end className={navItemClass} onClick={onClose}>
-                <Layers className="w-4 h-4 text-indigo-500" />
+                <Layers className="w-4 h-4 text-teal-600" />
                 <span>Sistemas Expertos</span>
               </NavLink>
               <NavLink to="/sistemas/nuevo" className={navItemClass} onClick={onClose}>
-                <PlusCircle className="w-4 h-4 text-emerald-500" />
+                <PlusCircle className="w-4 h-4 text-emerald-600" />
                 <span>Nuevo Sistema</span>
               </NavLink>
             </nav>
@@ -83,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {currentSistemaId && (
             <div>
               <div className="px-3 mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
                   Módulos del Sistema #{currentSistemaId}
                 </span>
               </div>
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   className={navItemClass}
                   onClick={onClose}
                 >
-                  <Info className="w-4 h-4 text-slate-500" />
+                  <Info className="w-4 h-4 text-stone-500" />
                   <span>Detalle General</span>
                 </NavLink>
 
@@ -104,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   className={navItemClass}
                   onClick={onClose}
                 >
-                  <Network className="w-4 h-4 text-sky-500" />
+                  <Network className="w-4 h-4 text-teal-600" />
                   <span>Editor Visual</span>
                 </NavLink>
 
@@ -113,7 +113,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   className={navItemClass}
                   onClick={onClose}
                 >
-                  <Database className="w-4 h-4 text-amber-500" />
+                  <Database className="w-4 h-4 text-amber-600" />
                   <span>Base de Conocimiento</span>
                 </NavLink>
 
@@ -130,21 +130,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           )}
 
           {!currentSistemaId && (
-            <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-500">
-              <p className="font-medium text-slate-700 mb-1 flex items-center gap-1.5">
-                <ChevronRight className="w-3.5 h-3.5 text-indigo-500" />
-                Sugerencia
+            <div className="p-3 bg-stone-50 border border-stone-200/80 rounded-xl text-xs text-stone-600">
+              <p className="font-medium text-stone-800 mb-1 flex items-center gap-1.5">
+                <ChevronRight className="w-3.5 h-3.5 text-teal-600" />
+                Sugerencia Docente
               </p>
-              Selecciona o crea un sistema experto para habilitar el editor visual, base de conocimiento e inferencia.
+              Selecciona o crea un sistema experto para explorar el editor visual, base de conocimiento y deducciones.
             </div>
           )}
         </div>
 
         {/* Footer info */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
-          <div className="text-[11px] text-slate-500 text-center">
-            Software Educativo Universitario
-            <span className="block text-slate-400 font-mono mt-0.5">Apoyo Docente</span>
+        <div className="p-4 border-t border-stone-100 bg-stone-50/60">
+          <div className="text-[11px] text-stone-500 text-center">
+            Sosftware de Apoyo a Sistemas Expertos
+            <span className="block text-stone-400 font-mono text-[10px] mt-0.5">Apoyo a la Docencia Universitaria</span>
           </div>
         </div>
       </aside>

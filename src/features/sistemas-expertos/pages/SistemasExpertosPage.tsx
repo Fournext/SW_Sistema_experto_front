@@ -44,14 +44,14 @@ export const SistemasExpertosPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header de la vista */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-200">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
-            <Layers className="w-6 h-6 text-indigo-600" />
+          <h2 className="text-2xl font-bold tracking-tight text-stone-900 flex items-center gap-2.5 font-serif">
+            <Layers className="w-6 h-6 text-teal-700" />
             Sistemas Expertos
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Administra los modelos de conocimiento y motores de inferencia para tus clases.
+          <p className="mt-1 text-xs text-stone-500">
+            Modelos declarativos de conocimiento y motores de inferencia para la enseñanza e investigación.
           </p>
         </div>
 
@@ -67,20 +67,20 @@ export const SistemasExpertosPage: React.FC = () => {
       </div>
 
       {/* Barra de búsqueda y filtros */}
-      <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
-        <Search className="w-5 h-5 text-slate-400 ml-2 shrink-0" />
+      <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-stone-200/90 shadow-2xs">
+        <Search className="w-5 h-5 text-stone-400 ml-2 shrink-0" />
         <input
           type="text"
-          placeholder="Buscar sistema experto por nombre o temática..."
+          placeholder="Buscar sistema experto por nombre, dominio o temática..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+          className="w-full bg-transparent text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none"
         />
         {searchTerm && (
           <button
             type="button"
             onClick={() => setSearchTerm('')}
-            className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1 rounded cursor-pointer"
+            className="text-xs text-stone-400 hover:text-stone-600 px-2 py-1 rounded cursor-pointer"
           >
             Limpiar
           </button>

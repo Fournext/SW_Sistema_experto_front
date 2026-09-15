@@ -81,18 +81,18 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
   const factorCertezaPct = (Number(regla.factor_certeza || 0) * 100).toFixed(0);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/90 hover:border-slate-300 shadow-xs transition-all overflow-hidden">
+    <div className="bg-white rounded-2xl border border-stone-200/90 hover:border-teal-300/80 shadow-2xs hover:shadow-xs transition-all overflow-hidden">
       {/* Cabecera de la Regla */}
-      <div className="px-5 py-3.5 bg-slate-50/70 border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
+      <div className="px-5 py-3.5 bg-stone-50/70 border-b border-stone-200/80 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="font-mono font-bold text-sm text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2.5 py-1 rounded-md">
+          <span className="font-mono font-bold text-sm text-teal-900 bg-teal-50 border border-teal-200/90 px-2.5 py-1 rounded-lg">
             {regla.nombre}
           </span>
           <Badge variant={regla.activa ? 'success' : 'neutral'} size="sm" dot>
             {regla.activa ? 'Activa' : 'Inactiva'}
           </Badge>
           {regla.descripcion && (
-            <span className="text-xs text-slate-500 hidden md:inline truncate max-w-xs" title={regla.descripcion}>
+            <span className="text-xs text-stone-500 hidden md:inline truncate max-w-xs" title={regla.descripcion}>
               {regla.descripcion}
             </span>
           )}
@@ -100,19 +100,19 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded">
-              Prioridad: <strong className="text-slate-800">{regla.prioridad}</strong>
+            <span className="text-[11px] font-semibold text-stone-600 bg-white border border-stone-200 px-2 py-0.5 rounded-md">
+              Prioridad: <strong className="text-stone-800">{regla.prioridad}</strong>
             </span>
-            <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded">
+            <span className="text-[11px] font-semibold text-teal-800 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded-md">
               FC: <strong>{factorCertezaPct}%</strong>
             </span>
           </div>
 
-          <div className="flex items-center gap-1 pl-2 border-l border-slate-200">
+          <div className="flex items-center gap-1 pl-2 border-l border-stone-200">
             <button
               type="button"
               onClick={() => onEdit(regla)}
-              className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-stone-400 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
               title="Editar regla y cláusulas"
             >
               <Edit2 className="w-4 h-4" />
@@ -120,7 +120,7 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
             <button
               type="button"
               onClick={() => onDelete(regla)}
-              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
               title="Eliminar regla"
             >
               <Trash2 className="w-4 h-4" />
@@ -132,12 +132,12 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
       {/* Cuerpo IF - THEN */}
       <div className="p-5 font-mono text-xs sm:text-sm space-y-3">
         {condiciones.length === 0 && conclusiones.length === 0 ? (
-          <div className="py-2 text-center text-slate-400 italic text-xs font-sans">
+          <div className="py-2 text-center text-stone-400 italic text-xs font-sans">
             Regla sin condiciones ni consecuencias definidas.{' '}
             <button
               type="button"
               onClick={() => onEdit(regla)}
-              className="text-indigo-600 font-semibold hover:underline cursor-pointer"
+              className="text-teal-700 font-semibold hover:underline cursor-pointer"
             >
               Hacer clic para editar
             </button>
@@ -147,8 +147,8 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
             {/* Cláusulas IF */}
             <div className="space-y-1.5">
               {condiciones.length === 0 ? (
-                <div className="flex items-center gap-2 text-slate-400 font-sans italic text-xs">
-                  <span className="font-bold font-mono text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-xs">
+                <div className="flex items-center gap-2 text-stone-400 font-sans italic text-xs">
+                  <span className="font-bold font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-xs">
                     IF
                   </span>
                   <span>(Sin condiciones definidas)</span>
@@ -165,16 +165,16 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
                         className={`font-bold px-2 py-0.5 rounded text-xs tracking-wide ${
                           esPrimer
                             ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                            : 'bg-slate-100 text-slate-700 border border-slate-300'
+                            : 'bg-stone-100 text-stone-700 border border-stone-300'
                         }`}
                       >
                         {esPrimer ? 'IF' : 'AND'}
                       </span>
-                      <span className="font-semibold text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                      <span className="font-semibold text-stone-900 bg-stone-50 px-2 py-0.5 rounded border border-stone-200">
                         {nombreRef}
                       </span>
                       <span className="font-bold text-amber-700">{op}</span>
-                      <span className="font-bold text-slate-900 bg-amber-50/80 px-2 py-0.5 rounded border border-amber-200 text-amber-950">
+                      <span className="font-bold text-stone-900 bg-amber-50/80 px-2 py-0.5 rounded border border-amber-200 text-amber-950">
                         {cond.valor_esperado}
                       </span>
                     </div>
@@ -186,8 +186,8 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
             {/* Cláusulas THEN */}
             <div className="space-y-1.5 pt-1">
               {conclusiones.length === 0 ? (
-                <div className="flex items-center gap-2 text-slate-400 font-sans italic text-xs">
-                  <span className="font-bold font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 text-xs flex items-center gap-1">
+                <div className="flex items-center gap-2 text-stone-400 font-sans italic text-xs">
+                  <span className="font-bold font-mono text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 text-xs flex items-center gap-1">
                     THEN <ArrowRight className="w-3 h-3" />
                   </span>
                   <span>(Sin consecuencias definidas)</span>
@@ -202,17 +202,17 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
                       <span
                         className={`font-bold px-2 py-0.5 rounded text-xs tracking-wide flex items-center gap-1 ${
                           esPrimer
-                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                            : 'bg-slate-100 text-slate-700 border border-slate-300'
+                            ? 'bg-teal-100 text-teal-950 border border-teal-300'
+                            : 'bg-stone-100 text-stone-700 border border-stone-300'
                         }`}
                       >
                         {esPrimer ? 'THEN' : 'AND'}
                       </span>
-                      <span className="font-semibold text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                      <span className="font-semibold text-stone-900 bg-stone-50 px-2 py-0.5 rounded border border-stone-200">
                         {nombreDest}
                       </span>
-                      <span className="font-bold text-emerald-700">=</span>
-                      <span className="font-bold text-emerald-950 bg-emerald-50/80 px-2 py-0.5 rounded border border-emerald-200">
+                      <span className="font-bold text-teal-700">=</span>
+                      <span className="font-bold text-teal-950 bg-teal-50/80 px-2 py-0.5 rounded border border-teal-200">
                         {concl.valor_resultante}
                       </span>
                     </div>

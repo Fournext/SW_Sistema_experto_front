@@ -1,13 +1,66 @@
 @import "tailwindcss";
 
+@theme {
+  /* Opción 3: Crecimiento y Enfoque (Enfoque Orgánico) */
+  --color-primary: #0f766e; /* Cerceta Profundo */
+  --color-primary-dark: #115e59;
+  --color-primary-light: #ccfbf1;
+  --color-primary-subtle: #f0fdfa;
+
+  --color-accent: #14b8a6; /* Verde Primavera */
+  --color-accent-dark: #0d9488;
+  --color-accent-light: #5eead4;
+  --color-accent-subtle: #f0fdf4;
+
+  --color-bg-main: #fafaf9; /* Blanco Roto / Crema muy sutil */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f5f4;
+
+  --color-warning: #f59e0b; /* Ámbar (Alertas / Sistema Experto) */
+  --color-warning-light: #fef3c7;
+  --color-warning-dark: #d97706;
+
+  --color-text-main: #3f3f46; /* Gris Neutro */
+  --color-text-muted: #71717a;
+  --color-text-subtle: #a1a1aa;
+
+  --color-border-subtle: #e7e5e4;
+  --color-border-hover: #d6d3d1;
+
+  /* Tipografías Académicas */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-serif: 'Lora', Georgia, serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+:root {
+  /* Variables CSS Nativas */
+  --color-primary: #0f766e;
+  --color-primary-dark: #115e59;
+  --color-primary-light: #ccfbf1;
+  --color-accent: #14b8a6;
+  --color-accent-dark: #0d9488;
+  --color-bg-main: #fafaf9;
+  --color-surface: #ffffff;
+  --color-warning: #f59e0b;
+  --color-text-main: #3f3f46;
+  --color-text-muted: #71717a;
+  --color-border: #e7e5e4;
+  --font-academic: 'Lora', Georgia, serif;
+}
+
 @layer base {
   * {
-    border-color: #e2e8f0;
+    border-color: #e7e5e4;
   }
   
   body {
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    color: #1e293b;
-    background-color: #f8fafc;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    color: #3f3f46;
+    background-color: #fafaf9;
+  }
+
+  h1, h2, h3, .font-academic {
+    letter-spacing: -0.015em;
   }
 }

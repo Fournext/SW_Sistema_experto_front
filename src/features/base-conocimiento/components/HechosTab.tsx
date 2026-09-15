@@ -77,14 +77,14 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-stone-200/80">
         <div>
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-emerald-600" />
+          <h3 className="text-base font-bold text-stone-900 flex items-center gap-2 font-serif">
+            <FileText className="w-5 h-5 text-emerald-700" />
             Base de Hechos y Proposiciones
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Los hechos representan el estado conocido del mundo en un momento determinado.
+          <p className="text-xs text-stone-500 mt-0.5">
+            Los hechos representan el estado conocido del mundo en un momento determinado del razonamiento.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
 
       {!hechos || hechos.length === 0 ? (
         <EmptyState
-          icon={<FileText className="w-8 h-8 text-emerald-600" />}
+          icon={<FileText className="w-8 h-8 text-emerald-700" />}
           title="No hay hechos en esta base de conocimiento"
           description="Agrega proposiciones o datos iniciales para comenzar a evaluar el razonamiento del sistema."
           actionText="Crear primer hecho"
@@ -126,16 +126,16 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
           <TableBody>
             {hechos.map((hecho) => (
               <TableRow key={hecho.id}>
-                <TableCell className="font-semibold text-slate-900">
+                <TableCell className="font-semibold text-stone-900 font-mono text-xs">
                   {hecho.nombre}
                 </TableCell>
                 <TableCell>
-                  <code className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded text-xs font-mono">
+                  <code className="px-2 py-0.5 bg-stone-100 text-stone-800 rounded text-xs font-mono border border-stone-200">
                     {hecho.valor}
                   </code>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="indigo" size="sm">
+                  <Badge variant="teal" size="sm">
                     {hecho.tipo_dato}
                   </Badge>
                 </TableCell>
@@ -158,7 +158,7 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
                         setHechoAEditar(hecho);
                         setModalOpen(true);
                       }}
-                      className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded transition-colors cursor-pointer"
+                      className="p-1 text-stone-400 hover:text-teal-700 hover:bg-teal-50 rounded transition-colors cursor-pointer"
                       title="Editar hecho"
                     >
                       <Edit2 className="w-4 h-4" />

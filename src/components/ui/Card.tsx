@@ -17,14 +17,14 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-200/80 shadow-xs overflow-hidden transition-all ${
-        hoverable ? 'hover:shadow-md hover:border-slate-300' : ''
+      className={`bg-white rounded-2xl border border-stone-200/90 shadow-2xs overflow-hidden transition-all duration-200 ${
+        hoverable ? 'hover:shadow-md hover:border-teal-200/90 hover:-translate-y-0.5' : ''
       } ${className}`}
       {...props}
     >
-      {header && <div className="px-6 py-4 border-b border-slate-100">{header}</div>}
+      {header && <div className="px-6 py-4 border-b border-stone-100">{header}</div>}
       <div className="p-6">{children}</div>
-      {footer && <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100">{footer}</div>}
+      {footer && <div className="px-6 py-3.5 bg-stone-50/80 border-t border-stone-100">{footer}</div>}
     </div>
   );
 };

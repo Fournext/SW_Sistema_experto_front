@@ -13,11 +13,16 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm focus-visible:ring-indigo-500 border border-transparent',
-  secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-700 shadow-sm focus-visible:ring-slate-400 border border-slate-200',
-  danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm focus-visible:ring-rose-500 border border-transparent',
-  ghost: 'bg-transparent hover:bg-slate-100 text-slate-700 focus-visible:ring-slate-400',
-  outline: 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 shadow-sm focus-visible:ring-indigo-500',
+  primary:
+    'bg-teal-700 hover:bg-teal-800 text-white shadow-xs hover:shadow-sm focus-visible:ring-teal-600 border border-transparent active:scale-[0.99] transition-all',
+  secondary:
+    'bg-stone-100 hover:bg-stone-200 text-stone-800 shadow-2xs focus-visible:ring-stone-400 border border-stone-200 transition-all',
+  danger:
+    'bg-rose-600 hover:bg-rose-700 text-white shadow-xs focus-visible:ring-rose-500 border border-transparent active:scale-[0.99] transition-all',
+  ghost:
+    'bg-transparent hover:bg-stone-100 text-stone-700 hover:text-stone-900 focus-visible:ring-stone-400 transition-all',
+  outline:
+    'bg-white hover:bg-teal-50/40 text-stone-700 hover:text-teal-900 border border-stone-300 hover:border-teal-400 shadow-2xs focus-visible:ring-teal-600 transition-all',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'indigo' | 'purple';
+export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'indigo' | 'purple' | 'teal';
 export type BadgeSize = 'sm' | 'md';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -13,45 +13,51 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 const variantStyles: Record<BadgeVariant, { bg: string; text: string; dot: string; border: string }> = {
   success: {
     bg: 'bg-emerald-50',
-    text: 'text-emerald-700',
+    text: 'text-emerald-800',
     dot: 'bg-emerald-500',
-    border: 'border-emerald-200',
+    border: 'border-emerald-200/80',
   },
   warning: {
     bg: 'bg-amber-50',
-    text: 'text-amber-700',
+    text: 'text-amber-800',
     dot: 'bg-amber-500',
-    border: 'border-amber-200',
+    border: 'border-amber-200/80',
   },
   danger: {
     bg: 'bg-rose-50',
-    text: 'text-rose-700',
+    text: 'text-rose-800',
     dot: 'bg-rose-500',
-    border: 'border-rose-200',
+    border: 'border-rose-200/80',
   },
   info: {
     bg: 'bg-sky-50',
-    text: 'text-sky-700',
+    text: 'text-sky-800',
     dot: 'bg-sky-500',
-    border: 'border-sky-200',
+    border: 'border-sky-200/80',
   },
   neutral: {
-    bg: 'bg-slate-100',
-    text: 'text-slate-700',
-    dot: 'bg-slate-400',
-    border: 'border-slate-200',
+    bg: 'bg-stone-100',
+    text: 'text-stone-700',
+    dot: 'bg-stone-400',
+    border: 'border-stone-200',
+  },
+  teal: {
+    bg: 'bg-teal-50',
+    text: 'text-teal-800',
+    dot: 'bg-teal-600',
+    border: 'border-teal-200/80',
   },
   indigo: {
-    bg: 'bg-indigo-50',
-    text: 'text-indigo-700',
-    dot: 'bg-indigo-500',
-    border: 'border-indigo-200',
+    bg: 'bg-teal-50',
+    text: 'text-teal-800',
+    dot: 'bg-teal-600',
+    border: 'border-teal-200/80',
   },
   purple: {
     bg: 'bg-purple-50',
-    text: 'text-purple-700',
+    text: 'text-purple-800',
     dot: 'bg-purple-500',
-    border: 'border-purple-200',
+    border: 'border-purple-200/80',
   },
 };
 

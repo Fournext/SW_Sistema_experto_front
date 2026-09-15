@@ -15,26 +15,26 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">
+          <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-stone-700 mb-1">
             {label}
             {required && <span className="text-rose-500 ml-1">*</span>}
           </label>
         )}
-        <div className="relative rounded-lg shadow-xs">
+        <div className="relative rounded-lg shadow-2xs">
           {leftIcon && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400">
               {leftIcon}
             </div>
           )}
           <input
             ref={ref}
             id={inputId}
-            className={`block w-full rounded-lg border py-2 px-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${
+            className={`block w-full rounded-lg border py-2 px-3 text-sm text-stone-800 placeholder:text-stone-400 bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-0 disabled:bg-stone-50 disabled:text-stone-400 disabled:cursor-not-allowed ${
               leftIcon ? 'pl-9' : ''
             } ${rightIcon ? 'pr-9' : ''} ${
               error
                 ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-200'
-                : 'border-slate-300 focus:border-indigo-500 focus:ring-indigo-200'
+                : 'border-stone-300 focus:border-teal-700 focus:ring-teal-600/20'
             } ${className}`}
             {...props}
           />

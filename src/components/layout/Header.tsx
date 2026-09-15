@@ -19,26 +19,26 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sistemaNombre }
   };
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 md:px-6 bg-white border-b border-slate-200">
+    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 md:px-6 bg-white/95 backdrop-blur-xs border-b border-stone-200">
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="p-2 -ml-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg lg:hidden cursor-pointer"
+          className="p-2 -ml-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-lg lg:hidden cursor-pointer"
           aria-label="Alternar menú"
         >
           <Menu className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-teal-700 text-white flex items-center justify-center font-bold shadow-xs">
             <BookOpen className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-slate-900 leading-tight">
+            <h1 className="text-sm font-bold text-stone-900 leading-tight font-serif">
               {sistemaNombre ? sistemaNombre : 'Sistema Experto'}
             </h1>
-            <p className="text-xs text-slate-500 leading-tight hidden sm:block">
+            <p className="text-xs text-stone-500 leading-tight hidden sm:block">
               {getSectionTitle()}
             </p>
           </div>
@@ -46,9 +46,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sistemaNombre }
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse" />
-          Modo Docente
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200/90">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 mr-1.5 animate-pulse" />
+          Laboratorio Docente
         </span>
       </div>
     </header>
