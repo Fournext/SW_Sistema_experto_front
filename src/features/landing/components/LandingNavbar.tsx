@@ -75,7 +75,7 @@ export const LandingNavbar: React.FC = () => {
         {/* CTA Button */}
         <div className="hidden md:flex items-center gap-3">
           <button
-            onClick={() => navigate('/sistemas')}
+            onClick={() => navigate('/central/login')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 hover:from-teal-800 hover:to-teal-700 text-white font-semibold text-sm shadow-md shadow-teal-700/20 hover:shadow-lg hover:shadow-teal-700/30 transition-all duration-300 transform active:scale-95 cursor-pointer"
           >
             <span>Ingresar a la Plataforma</span>
@@ -122,7 +122,7 @@ export const LandingNavbar: React.FC = () => {
             </button>
             <div className="pt-2">
               <button
-                onClick={() => navigate('/sistemas')}
+                onClick={() => navigate('/central/login')}
                 className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-teal-700 text-white font-semibold text-sm shadow-md"
               >
                 <span>Ingresar a la Plataforma</span>

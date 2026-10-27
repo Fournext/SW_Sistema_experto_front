@@ -1,3 +1,5 @@
+import { Permisos, usePuede } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, Variable as VariableIcon } from 'lucide-react';
 import { useVariables, useVariablesMutations } from '../hooks/useBaseConocimiento';
@@ -25,8 +27,12 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
   const [modalOpen, setModalOpen] = useState(false);
   const [variableAEditar, setVariableAEditar] = useState<Variable | null>(null);
   const confirmDialog = useConfirmDialog();
+  const puedeCrear = usePuede(Permisos.VARIABLES_CREAR);
+  const puedeEditar = usePuede(Permisos.VARIABLES_EDITAR);
+  const puedeEliminar = usePuede(Permisos.VARIABLES_ELIMINAR);
 
   const handleCrearOActualizar = async (data: VariableFormData) => {
+    if (variableAEditar ? !puedeEditar : !puedeCrear) return;
     if (variableAEditar) {
       await actualizar.mutateAsync({
         id: variableAEditar.id,
@@ -37,6 +43,8 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
         nombre: data.nombre,
         tipo: data.tipo,
         descripcion: data.descripcion,
+        es_inicial: data.es_inicial,
+        pregunta: data.pregunta,
       });
     }
     setModalOpen(false);
@@ -44,6 +52,7 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
   };
 
   const handleEliminar = (variable: Variable) => {
+    if (!puedeEliminar) return;
     confirmDialog.confirm({
       title: `¿Eliminar variable "${variable.nombre}"?`,
       message: 'Esta variable y su definición serán eliminadas de la base de conocimiento.',
@@ -88,7 +97,7 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
           </p>
         </div>
 
-        <Button
+        <Permiso permisos={[Permisos.VARIABLES_CREAR]}><Button
           variant="primary"
           size="sm"
           icon={<Plus className="w-4 h-4" />}
@@ -98,7 +107,7 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
           }}
         >
           Agregar Variable
-        </Button>
+        </Button></Permiso>
       </div>
 
       {!variables || variables.length === 0 ? (
@@ -106,11 +115,11 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
           icon={<VariableIcon className="w-8 h-8 text-teal-700" />}
           title="No hay variables registradas"
           description="Crea variables para definir los atributos que serán evaluados en tus reglas de inferencia."
-          actionText="Crear primera variable"
-          onAction={() => {
+          actionText={puedeCrear ? "Crear primera variable" : undefined}
+          onAction={puedeCrear ? () => {
             setVariableAEditar(null);
             setModalOpen(true);
-          }}
+          } : undefined}
         />
       ) : (
         <Table>
@@ -126,7 +135,19 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
             {variables.map((variable) => (
               <TableRow key={variable.id}>
                 <TableCell className="font-semibold text-stone-900 font-mono text-xs">
-                  {variable.nombre}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span>{variable.nombre}</span>
+                    {variable.es_inicial && (
+                      <Badge variant="success" size="sm" className="text-[10px] px-1.5 py-0">
+                        Inicial
+                      </Badge>
+                    )}
+                  </div>
+                  {variable.pregunta && (
+                    <p className="text-[11px] text-stone-500 font-sans italic mt-0.5 font-normal">
+                      &quot;{variable.pregunta}&quot;
+                    </p>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge variant="teal" size="sm">
@@ -138,7 +159,7 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button
+                    <Permiso permisos={[Permisos.VARIABLES_EDITAR]}><button
                       type="button"
                       onClick={() => {
                         setVariableAEditar(variable);
@@ -148,15 +169,15 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
                       title="Editar variable"
                     >
                       <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
+                    </button></Permiso>
+                    <Permiso permisos={[Permisos.VARIABLES_ELIMINAR]}><button
                       type="button"
                       onClick={() => handleEliminar(variable)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                       title="Eliminar variable"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </button></Permiso>
                   </div>
                 </TableCell>
               </TableRow>
@@ -182,6 +203,8 @@ export const VariablesSection: React.FC<VariablesSectionProps> = ({ baseConocimi
                   nombre: variableAEditar.nombre,
                   tipo: variableAEditar.tipo || variableAEditar.tipo_dato || 'TEXTO',
                   descripcion: variableAEditar.descripcion,
+                  es_inicial: variableAEditar.es_inicial ?? false,
+                  pregunta: variableAEditar.pregunta || '',
                 }
               : undefined
           }

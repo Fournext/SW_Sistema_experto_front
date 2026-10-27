@@ -63,14 +63,27 @@ export const ConclusionForm: React.FC<ConclusionFormProps> = ({
     return 'TEXTO';
   }, [selectedDestino, variables, hechos]);
 
-  // Si el tipo es booleano, inicializar el valor resultante en 'true' si no es válido
+  const opcionesDisponibles = useMemo(() => {
+    if (!selectedDestino) return [];
+    const v = variables?.find((item) => item.nombre === selectedDestino);
+    if (v && (v as any).opciones) return (v as any).opciones as string[];
+    const h = hechos?.find((item) => item.nombre === selectedDestino);
+    if (h && h.opciones) return h.opciones;
+    return [];
+  }, [selectedDestino, variables, hechos]);
+
+  // Si el tipo es booleano u opcion, ajustar valor inicial
   useEffect(() => {
     if (tipoDato === 'BOOLEANO') {
       if (valorActual !== 'true' && valorActual !== 'false') {
         setValue('valor_resultante', 'true', { shouldValidate: true });
       }
+    } else if (tipoDato === 'OPCION') {
+      if (opcionesDisponibles.length > 0 && !opcionesDisponibles.includes(valorActual)) {
+        setValue('valor_resultante', opcionesDisponibles[0], { shouldValidate: true });
+      }
     }
-  }, [tipoDato, valorActual, setValue]);
+  }, [tipoDato, valorActual, opcionesDisponibles, setValue]);
 
   const onFormSubmit = (data: ConclusionFormData) => {
     const val = data.valor_resultante.trim();
@@ -79,6 +92,13 @@ export const ConclusionForm: React.FC<ConclusionFormProps> = ({
       if (lower !== 'true' && lower !== 'false') {
         setError('valor_resultante', {
           message: 'El valor debe ser "true" o "false" para un consecuente booleano',
+        });
+        return;
+      }
+    } else if (tipoDato === 'OPCION') {
+      if (opcionesDisponibles.length > 0 && !opcionesDisponibles.includes(val)) {
+        setError('valor_resultante', {
+          message: `El valor resultante debe ser una de las opciones configuradas: ${opcionesDisponibles.join(', ')}`,
         });
         return;
       }
@@ -175,6 +195,30 @@ export const ConclusionForm: React.FC<ConclusionFormProps> = ({
             </div>
             <input type="hidden" {...register('valor_resultante')} />
           </div>
+        ) : tipoDato === 'OPCION' ? (
+          opcionesDisponibles.length > 0 ? (
+            <Select
+              options={[
+                { value: '', label: '-- Selecciona una opción resultante --' },
+                ...opcionesDisponibles.map((opc) => ({ value: opc, label: opc })),
+              ]}
+              error={errors.valor_resultante?.message}
+              required
+              {...register('valor_resultante')}
+            />
+          ) : (
+            <div className="space-y-1">
+              <Input
+                placeholder="Escribe el valor de la opción resultante..."
+                error={errors.valor_resultante?.message}
+                required
+                {...register('valor_resultante')}
+              />
+              <p className="text-[11px] text-purple-700 italic">
+                Este hecho/variable no tiene opciones predefinidas. Puedes ingresar el valor manualmente.
+              </p>
+            </div>
+          )
         ) : (
           <Input
             type={tipoDato === 'ENTERO' || tipoDato === 'DECIMAL' ? 'number' : 'text'}
@@ -194,6 +238,7 @@ export const ConclusionForm: React.FC<ConclusionFormProps> = ({
 
         <p className="text-[11px] text-slate-500 mt-1">
           {tipoDato === 'BOOLEANO' && 'Selecciona el estado booleano deducido por la regla.'}
+          {tipoDato === 'OPCION' && 'Selecciona el valor de la opción deducido por la regla.'}
           {tipoDato === 'ENTERO' && 'Solo se permiten números enteros sin decimales.'}
           {tipoDato === 'DECIMAL' && 'Ingresa un número decimal o entero.'}
           {tipoDato === 'TEXTO' && 'Ingresa el texto que deducirá la regla.'}

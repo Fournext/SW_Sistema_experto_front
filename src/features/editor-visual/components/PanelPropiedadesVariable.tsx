@@ -11,6 +11,7 @@ import type { FlowNode } from '../types/types';
 const variablePropsSchema = z.object({
   nombre: z.string().min(1, 'El nombre es obligatorio'),
   tipo: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO']),
+  valor_por_defecto: z.string(),
   descripcion: z.string().optional().or(z.literal('')),
 });
 
@@ -31,12 +32,14 @@ export const PanelPropiedadesVariable: React.FC<PanelPropiedadesVariableProps> =
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<VariablePropsForm>({
     resolver: zodResolver(variablePropsSchema),
     defaultValues: {
       nombre: String(nodo.data.nombre || ''),
       tipo: (nodo.data.tipo as 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO') || 'TEXTO',
+      valor_por_defecto: String(nodo.data.valor_por_defecto ?? nodo.data.valor_defecto ?? ''),
       descripcion: String(nodo.data.descripcion || ''),
     },
   });
@@ -45,9 +48,11 @@ export const PanelPropiedadesVariable: React.FC<PanelPropiedadesVariableProps> =
     reset({
       nombre: String(nodo.data.nombre || ''),
       tipo: (nodo.data.tipo as 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO') || 'TEXTO',
+      valor_por_defecto: String(nodo.data.valor_por_defecto ?? nodo.data.valor_defecto ?? ''),
       descripcion: String(nodo.data.descripcion || ''),
     });
   }, [nodo, reset]);
+  const tipo = watch('tipo');
 
   return (
     <form onSubmit={handleSubmit(onGuardar)} className="space-y-3.5 text-left">
@@ -70,6 +75,26 @@ export const PanelPropiedadesVariable: React.FC<PanelPropiedadesVariableProps> =
         required
         {...register('tipo')}
       />
+
+      {tipo === 'BOOLEANO' ? (
+        <Select
+          label="Valor inicial (opcional)"
+          options={[
+            { value: '', label: 'Sin valor inicial' },
+            { value: 'true', label: 'Verdadero (True)' },
+            { value: 'false', label: 'Falso (False)' },
+          ]}
+          {...register('valor_por_defecto')}
+        />
+      ) : (
+        <Input
+          label="Valor inicial (opcional)"
+          placeholder="Sin valor inicial"
+          type={tipo === 'ENTERO' || tipo === 'DECIMAL' ? 'number' : 'text'}
+          step={tipo === 'ENTERO' ? '1' : tipo === 'DECIMAL' ? 'any' : undefined}
+          {...register('valor_por_defecto')}
+        />
+      )}
 
       <Textarea
         label="Descripción"

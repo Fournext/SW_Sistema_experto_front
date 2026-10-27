@@ -1,0 +1,10 @@
+import { dateLabel, useCentralQuery } from '../services/centralQuery';
+import { Activity, ArrowUpRight, ShieldCheck, Users, Fingerprint } from 'lucide-react';
+import { centralService } from '../services/centralService';
+import { CentralHeading, Empty, EventResult, QueryState } from '../components/CentralUI';
+
+export default function PanelPage() {
+  const query = useCentralQuery('panel', centralService.panel);
+  const metrics = query.data ? [{ label: 'Usuarios activos', value: query.data.usuarios_activos, icon: Users }, { label: 'Roles definidos', value: query.data.roles, icon: ShieldCheck }, { label: 'Sesiones activas', value: query.data.sesiones_activas, icon: Activity }, { label: 'Total de accesos', value: query.data.total_accesos, icon: Fingerprint }] : [];
+  return <><CentralHeading eyebrow="01 / VISTA GENERAL" title="El control comienza aquí." description="Una mirada a las identidades y la actividad de tu plataforma." /><QueryState loading={query.isPending} error={query.error} retry={query.refetch} />{query.data && <><div className="central-metrics">{metrics.map((metric, i) => <article key={metric.label} style={{ animationDelay: `${i * 60}ms` }}><div><metric.icon size={21} /><ArrowUpRight size={17} /></div><strong>{metric.value.toLocaleString('es-BO')}</strong><p>{metric.label}</p></article>)}</div><section className="central-card"><div className="central-section-heading"><div><h2>Accesos recientes</h2><p>Últimos movimientos registrados en el sistema.</p></div><span className="central-badge positive">Actividad del sistema</span></div><div className="central-table-scroll"><table className="central-table"><thead><tr><th>Usuario</th><th>Evento</th><th>Dirección IP</th><th>Fecha y hora</th><th>Resultado</th></tr></thead><tbody>{query.data.accesos_recientes.map(event => <tr key={event.id}><td className="central-strong">{event.usuario}</td><td>{event.evento}</td><td><code>{event.ip}</code></td><td>{dateLabel(event.fecha)}</td><td><EventResult value={event.resultado} /></td></tr>)}</tbody></table></div>{!query.data.accesos_recientes.length && <Empty>Aún no hay accesos registrados.</Empty>}</section></>}</>;
+}

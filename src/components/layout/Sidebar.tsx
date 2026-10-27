@@ -1,5 +1,7 @@
 import React from 'react';
 import { NavLink, useLocation, useParams } from 'react-router-dom';
+import type { NavLinkProps } from 'react-router-dom';
+import { Permisos, usePuede } from '../../config/permisos';
 import {
   Layers,
   Network,
@@ -9,7 +11,16 @@ import {
   Cpu,
   ChevronRight,
   Info,
+  ShieldCheck,
+  History,
+  GraduationCap,
+  BookOpen,
 } from 'lucide-react';
+
+const PermissionLink = ({ permiso, ...props }: NavLinkProps & { permiso: string }) => {
+  const permitido = usePuede(permiso);
+  return permitido ? <NavLink {...props} /> : null;
+};
 
 export interface SidebarProps {
   isOpen: boolean;
@@ -19,9 +30,13 @@ export interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { id } = useParams<{ id?: string }>();
   const location = useLocation();
+  const puedeVerSistemas = usePuede(Permisos.SISTEMAS_VER);
+  const puedeCrearSistemas = usePuede(Permisos.SISTEMAS_CREAR);
+  const puedeVerActividades = usePuede(Permisos.ACTIVIDADES_VER);
+  const puedeResolverActividades = usePuede(Permisos.ACTIVIDADES_RESOLVER);
 
-  // Detectar si estamos dentro del contexto de un sistema experto específico
-  const currentSistemaId = id || (location.pathname.match(/\/sistemas\/(\d+)/)?.[1]);
+  // Detectar si estamos dentro del contexto de un sistema experto específico (soporta UUID o numérico)
+  const currentSistemaId = id || (location.pathname.match(/\/sistemas\/([a-zA-Z0-9-]+)/)?.[1]);
 
   const navItemClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
@@ -55,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               SE-Docente
             </span>
             <span className="text-[11px] text-stone-500 font-medium block">
-              Sistemas Expertos v1.0
+              Sistemas Expertos v2.0
             </span>
           </div>
         </div>
@@ -63,33 +78,54 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
           {/* General Section */}
-          <div>
+          {(puedeVerSistemas || puedeCrearSistemas) && <div>
             <div className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-stone-400">
               General
             </div>
             <nav className="space-y-1">
-              <NavLink to="/sistemas" end className={navItemClass} onClick={onClose}>
+              <PermissionLink permiso={Permisos.SISTEMAS_VER} to="/sistemas" end className={navItemClass} onClick={onClose}>
                 <Layers className="w-4 h-4 text-teal-600" />
                 <span>Sistemas Expertos</span>
-              </NavLink>
-              <NavLink to="/sistemas/nuevo" className={navItemClass} onClick={onClose}>
+              </PermissionLink>
+              <PermissionLink permiso={Permisos.SISTEMAS_CREAR} to="/sistemas/nuevo" className={navItemClass} onClick={onClose}>
                 <PlusCircle className="w-4 h-4 text-emerald-600" />
                 <span>Nuevo Sistema</span>
-              </NavLink>
+              </PermissionLink>
             </nav>
-          </div>
+          </div>}
+
+          {/* Actividades Educativas */}
+          {(puedeVerActividades || puedeResolverActividades) && <div>
+            <div className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-stone-400">
+              Actividades Didácticas
+            </div>
+            <nav className="space-y-1">
+              <NavLink to="/cursos" className={navItemClass} onClick={onClose}>
+                <BookOpen className="w-4 h-4 text-teal-700" />
+                <span>Mis cursos</span>
+              </NavLink>
+              <PermissionLink permiso={Permisos.ACTIVIDADES_VER} to="/actividades" className={navItemClass} onClick={onClose}>
+                <GraduationCap className="w-4 h-4 text-teal-700" />
+                <span>Biblioteca de actividades</span>
+              </PermissionLink>
+              <PermissionLink permiso={Permisos.ACTIVIDADES_RESOLVER} to="/mis-actividades" className={navItemClass} onClick={onClose}>
+                <BookOpen className="w-4 h-4 text-sky-600" />
+                <span>Mis Actividades (Estudiante)</span>
+              </PermissionLink>
+            </nav>
+          </div>}
 
           {/* Sistema Contextual Section */}
-          {currentSistemaId && (
+          {currentSistemaId && currentSistemaId !== 'nuevo' && !location.pathname.startsWith('/actividades/resolver/') && (
             <div>
               <div className="px-3 mb-2 flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400">
-                  Módulos del Sistema #{currentSistemaId}
+                <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 truncate max-w-[200px]" title={currentSistemaId}>
+                  Módulos del Sistema
                 </span>
               </div>
 
               <nav className="space-y-1">
-                <NavLink
+                <PermissionLink permiso={Permisos.SISTEMAS_VER}
                   to={`/sistemas/${currentSistemaId}`}
                   end
                   className={navItemClass}
@@ -97,45 +133,64 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 >
                   <Info className="w-4 h-4 text-stone-500" />
                   <span>Detalle General</span>
-                </NavLink>
+                </PermissionLink>
 
-                <NavLink
+                <PermissionLink permiso={Permisos.EDITOR_VER}
                   to={`/sistemas/${currentSistemaId}/editor`}
                   className={navItemClass}
                   onClick={onClose}
                 >
                   <Network className="w-4 h-4 text-teal-600" />
                   <span>Editor Visual</span>
-                </NavLink>
+                </PermissionLink>
 
-                <NavLink
+                <PermissionLink permiso={Permisos.BASE_CONOCIMIENTO_VER}
                   to={`/sistemas/${currentSistemaId}/base-conocimiento`}
                   className={navItemClass}
                   onClick={onClose}
                 >
                   <Database className="w-4 h-4 text-amber-600" />
                   <span>Base de Conocimiento</span>
-                </NavLink>
+                </PermissionLink>
 
-                <NavLink
+                <PermissionLink permiso={Permisos.INFERENCIA_EJECUTAR}
                   to={`/sistemas/${currentSistemaId}/inferencia`}
                   className={navItemClass}
                   onClick={onClose}
                 >
                   <PlayCircle className="w-4 h-4 text-emerald-600" />
                   <span>Motor de Inferencia</span>
-                </NavLink>
+                </PermissionLink>
+
+                {/* Submódulos de Inferencia y Validación */}
+                <PermissionLink permiso={Permisos.VALIDACION_VER}
+                  to={`/sistemas/${currentSistemaId}/validacion`}
+                  className={navItemClass}
+                  onClick={onClose}
+                >
+                  <ShieldCheck className="w-4 h-4 text-teal-600" />
+                  <span>Validar BC</span>
+                </PermissionLink>
+
+                <PermissionLink permiso={Permisos.INFERENCIA_HISTORIAL_VER}
+                  to={`/sistemas/${currentSistemaId}/historial`}
+                  className={navItemClass}
+                  onClick={onClose}
+                >
+                  <History className="w-4 h-4 text-stone-600" />
+                  <span>Historial</span>
+                </PermissionLink>
               </nav>
             </div>
           )}
 
-          {!currentSistemaId && (
+          {!currentSistemaId && puedeVerSistemas && (
             <div className="p-3 bg-stone-50 border border-stone-200/80 rounded-xl text-xs text-stone-600">
               <p className="font-medium text-stone-800 mb-1 flex items-center gap-1.5">
                 <ChevronRight className="w-3.5 h-3.5 text-teal-600" />
                 Sugerencia Docente
               </p>
-              Selecciona o crea un sistema experto para explorar el editor visual, base de conocimiento y deducciones.
+              Selecciona o crea un sistema experto para explorar el editor visual, base de conocimiento, simulación y reportes.
             </div>
           )}
         </div>
@@ -143,8 +198,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         {/* Footer info */}
         <div className="p-4 border-t border-stone-100 bg-stone-50/60">
           <div className="text-[11px] text-stone-500 text-center">
-            Sosftware de Apoyo a Sistemas Expertos
-            <span className="block text-stone-400 font-mono text-[10px] mt-0.5">Apoyo a la Docencia Universitaria</span>
+            Software de Apoyo a Sistemas Expertos
+            <span className="block text-stone-400 font-mono text-[10px] mt-0.5">Módulo de Inferencia y Didáctica</span>
           </div>
         </div>
       </aside>

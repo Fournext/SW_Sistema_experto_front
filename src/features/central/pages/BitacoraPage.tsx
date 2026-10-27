@@ -1,0 +1,12 @@
+import { dateLabel, useCentralQuery } from '../services/centralQuery';
+import { useState } from 'react';
+import { Search } from 'lucide-react';
+import { centralService } from '../services/centralService';
+import { CentralHeading, Empty, EventResult, QueryState } from '../components/CentralUI';
+
+export default function BitacoraPage() {
+  const query = useCentralQuery('bitacora', centralService.bitacora);
+  const [search, setSearch] = useState(''); const [from, setFrom] = useState(''); const [to, setTo] = useState(''); const [result, setResult] = useState('');
+  const events = (query.data ?? []).filter(e => { const timestamp = new Date(e.fecha).getTime(); return `${e.usuario} ${e.evento} ${e.ip}`.toLowerCase().includes(search.toLowerCase()) && (!result || e.resultado === result) && (!from || timestamp >= new Date(`${from}T00:00:00`).getTime()) && (!to || timestamp <= new Date(`${to}T23:59:59.999`).getTime()); });
+  return <><CentralHeading eyebrow="06 / AUDITORÍA" title="La historia de cada acceso." description="Consulta los eventos de seguridad y conserva la trazabilidad de tu plataforma." /><div className="central-toolbar"><label className="central-search"><Search size={18} /><input aria-label="Buscar evento" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar usuario, evento o IP…" /></label><label className="central-date-filter">Desde<input type="date" value={from} onChange={e => setFrom(e.target.value)} /></label><label className="central-date-filter">Hasta<input type="date" min={from} value={to} onChange={e => setTo(e.target.value)} /></label><select aria-label="Filtrar resultado" value={result} onChange={e => setResult(e.target.value)}><option value="">Todos los resultados</option>{[...new Set(query.data?.map(e => e.resultado) ?? [])].map(r => <option key={r}>{r}</option>)}</select></div><QueryState loading={query.isPending} error={query.error} retry={query.refetch} />{query.data && <section className="central-card"><div className="central-table-scroll"><table className="central-table"><thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Evento</th><th>Dirección IP</th><th>Resultado</th></tr></thead><tbody>{events.map(e => <tr key={e.id}><td>{dateLabel(e.fecha)}</td><td className="central-strong">{e.usuario}</td><td>{e.evento}</td><td><code>{e.ip}</code></td><td><EventResult value={e.resultado} /></td></tr>)}</tbody></table></div>{!events.length && <Empty>No se encontraron eventos para estos filtros.</Empty>}</section>}</>;
+}

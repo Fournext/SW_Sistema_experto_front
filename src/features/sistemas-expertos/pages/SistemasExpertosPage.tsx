@@ -1,3 +1,5 @@
+import { Permisos, usePuede } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Layers, BookOpen } from 'lucide-react';
@@ -16,8 +18,11 @@ export const SistemasExpertosPage: React.FC = () => {
   const { eliminar } = useSistemaExpertoMutations();
   const [searchTerm, setSearchTerm] = useState('');
   const confirmDialog = useConfirmDialog();
+  const puedeCrear = usePuede(Permisos.SISTEMAS_CREAR);
+  const puedeEliminar = usePuede(Permisos.SISTEMAS_ELIMINAR);
 
   const handleEliminar = (id: string | number) => {
+    if (!puedeEliminar) return;
     confirmDialog.confirm({
       title: '¿Eliminar sistema experto?',
       message:
@@ -55,7 +60,7 @@ export const SistemasExpertosPage: React.FC = () => {
           </p>
         </div>
 
-        <Button
+        <Permiso permisos={[Permisos.SISTEMAS_CREAR]}><Button
           variant="primary"
           size="md"
           icon={<Plus className="w-4 h-4" />}
@@ -63,7 +68,7 @@ export const SistemasExpertosPage: React.FC = () => {
           className="shrink-0"
         >
           Nuevo Sistema Experto
-        </Button>
+        </Button></Permiso>
       </div>
 
       {/* Barra de búsqueda y filtros */}
@@ -116,8 +121,8 @@ export const SistemasExpertosPage: React.FC = () => {
             icon={<BookOpen className="w-8 h-8 text-indigo-600" />}
             title="No tienes sistemas expertos registrados"
             description="Comienza creando tu primer sistema experto para definir hechos, variables, reglas de inferencia y diagramas visuales."
-            actionText="Crear primer sistema"
-            onAction={() => navigate('/sistemas/nuevo')}
+            actionText={puedeCrear ? "Crear primer sistema" : undefined}
+            onAction={puedeCrear ? () => navigate('/sistemas/nuevo') : undefined}
           />
         )
       ) : (

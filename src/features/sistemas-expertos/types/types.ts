@@ -18,10 +18,12 @@ export interface CrearSistemaExpertoDTO {
   nombre: string;
   descripcion?: string;
   activo?: boolean;
+  estado?: 'BORRADOR' | 'ACTIVO' | 'ARCHIVADO';
 }
 
 export interface ActualizarSistemaExpertoDTO {
   nombre?: string;
   descripcion?: string;
   activo?: boolean;
+  estado?: 'BORRADOR' | 'ACTIVO' | 'ARCHIVADO';
 }

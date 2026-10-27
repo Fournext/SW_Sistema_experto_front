@@ -1,3 +1,5 @@
+import { Permisos } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import {
   FileText,
   Variable as VariableIcon,
@@ -39,7 +41,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           Agregar:
         </span>
 
-        <button
+        <Permiso permisos={[Permisos.EDITOR_NODOS_CREAR]}><button
           type="button"
           onClick={() => onAgregarNodo('HECHO')}
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors cursor-pointer border border-emerald-200/80"
@@ -47,9 +49,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         >
           <FileText className="w-3.5 h-3.5 text-emerald-600" />
           Hecho
-        </button>
+        </button></Permiso>
 
-        <button
+        <Permiso permisos={[Permisos.EDITOR_NODOS_CREAR]}><button
           type="button"
           onClick={() => onAgregarNodo('VARIABLE')}
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-semibold transition-colors cursor-pointer border border-sky-200/80"
@@ -57,9 +59,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         >
           <VariableIcon className="w-3.5 h-3.5 text-sky-600" />
           Variable
-        </button>
+        </button></Permiso>
 
-        <button
+        <Permiso permisos={[Permisos.EDITOR_NODOS_CREAR]}><button
           type="button"
           onClick={() => onAgregarNodo('CONDICION')}
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-semibold transition-colors cursor-pointer border border-amber-200/80"
@@ -67,9 +69,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         >
           <GitBranch className="w-3.5 h-3.5 text-amber-600" />
           Condición
-        </button>
+        </button></Permiso>
 
-        <button
+        <Permiso permisos={[Permisos.EDITOR_NODOS_CREAR]}><button
           type="button"
           onClick={() => onAgregarNodo('REGLA')}
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 text-xs font-semibold transition-colors cursor-pointer border border-indigo-200/80"
@@ -77,9 +79,9 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         >
           <Workflow className="w-3.5 h-3.5 text-indigo-600" />
           Regla
-        </button>
+        </button></Permiso>
 
-        <button
+        <Permiso permisos={[Permisos.EDITOR_NODOS_CREAR]}><button
           type="button"
           onClick={() => onAgregarNodo('CONCLUSION')}
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-xs font-semibold transition-colors cursor-pointer border border-purple-200/80"
@@ -87,7 +89,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         >
           <CheckCircle className="w-3.5 h-3.5 text-purple-600" />
           Conclusión
-        </button>
+        </button></Permiso>
       </div>
 
       {/* Botones de acción del lienzo */}
@@ -107,7 +109,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
         )}
 
         {onReorganizar && (
-          <Button
+          <Permiso permisos={[Permisos.EDITOR_NODOS_EDITAR]}><Button
             variant="outline"
             size="sm"
             icon={<LayoutGrid className="w-3.5 h-3.5 text-slate-600" />}
@@ -115,7 +117,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
             title="Reordenar automáticamente el grafo en jerarquía Regla -> IF -> Condición -> THEN -> Conclusión"
           >
             Reorganizar
-          </Button>
+          </Button></Permiso>
         )}
 
         <Button
@@ -128,7 +130,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           Centrar
         </Button>
 
-        <Button
+        <Permiso permisos={[Permisos.EDITOR_NODOS_EDITAR]}><Button
           variant="primary"
           size="sm"
           icon={<Save className="w-3.5 h-3.5" />}
@@ -137,7 +139,7 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           title="Guardar posiciones del diagrama"
         >
           Guardar Cambios
-        </Button>
+        </Button></Permiso>
       </div>
     </div>
   );

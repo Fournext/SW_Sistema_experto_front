@@ -6,7 +6,7 @@ export const getEstadoBadgeVariant = (estado: EstadoRegla): BadgeVariant => {
     case 'ACTIVADA':
       return 'success';
     case 'EJECUTADA':
-      return 'indigo';
+      return 'teal';
     case 'RECHAZADA':
       return 'danger';
     case 'EVALUADA':

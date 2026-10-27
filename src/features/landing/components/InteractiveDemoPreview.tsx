@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, RotateCcw, Check, Sparkles, Activity, Zap, CheckCircle2 } from 'lucide-react';
+import { Play, RotateCcw, Check, Activity, Zap, CheckCircle2, Cpu } from 'lucide-react';
 
 interface HechoDemo {
   id: string;
@@ -135,15 +135,11 @@ export const InteractiveDemoPreview: React.FC = () => {
   };
 
   return (
-    <section id="demostracion" className="py-20 bg-stone-900 text-white relative overflow-hidden">
-      {/* Decorative Glow */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-teal-500/10 blur-3xl rounded-full pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
-
+    <section id="demostracion" className="py-20 bg-stone-900 text-white relative border-b border-stone-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-900/60 border border-teal-700/50 text-teal-300 text-xs font-semibold mb-4">
-            <Zap className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-stone-800 border border-stone-700 text-stone-300 text-xs font-medium mb-4">
+            <Zap className="w-3.5 h-3.5 text-teal-400" />
             <span>Simulador Interactivo en Tiempo Real</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
@@ -157,10 +153,10 @@ export const InteractiveDemoPreview: React.FC = () => {
         {/* Simulator Workspace Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Panel: Fact Controls */}
-          <div className="lg:col-span-5 bg-stone-800/90 backdrop-blur-md rounded-2xl p-6 border border-stone-700/80 shadow-2xl">
+          <div className="lg:col-span-5 bg-stone-800 rounded-xl p-6 border border-stone-700 shadow-md">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-700">
-              <h3 className="font-bold text-lg text-teal-300 flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+              <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-teal-500" />
                 1. Memoria de Trabajo (Hechos)
               </h3>
               <span className="text-xs text-stone-400 bg-stone-700 px-2 py-1 rounded">
@@ -218,24 +214,24 @@ export const InteractiveDemoPreview: React.FC = () => {
           </div>
 
           {/* Right Panel: Execution Trace & Deduced Conclusion */}
-          <div className="lg:col-span-7 bg-stone-800/90 backdrop-blur-md rounded-2xl p-6 border border-stone-700/80 shadow-2xl flex flex-col min-h-[420px]">
+          <div className="lg:col-span-7 bg-stone-800 rounded-xl p-6 border border-stone-700 shadow-md flex flex-col min-h-[420px]">
             <div className="flex items-center justify-between mb-4 pb-3 border-b border-stone-700">
-              <h3 className="font-bold text-lg text-emerald-300 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-emerald-400" />
+              <h3 className="font-bold text-base text-stone-100 flex items-center gap-2">
+                <Activity className="w-4 h-4 text-teal-400" />
                 2. Traza de Inferencia Paso a Paso
               </h3>
               {ejecutado && (
-                <span className="text-xs bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-2.5 py-1 rounded-full font-mono">
+                <span className="text-xs bg-stone-900 text-teal-400 border border-teal-800 px-2 py-0.5 rounded font-mono font-medium">
                   FINALIZADA
                 </span>
               )}
             </div>
 
             {!ejecutado ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-stone-700 rounded-xl bg-stone-900/30">
-                <Sparkles className="w-10 h-10 text-teal-500/50 mb-3 animate-pulse" />
-                <h4 className="text-stone-300 font-semibold text-base">Esperando ejecución</h4>
-                <p className="text-xs text-stone-500 max-w-sm mt-1">
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-stone-700 rounded-lg bg-stone-900/40">
+                <Cpu className="w-8 h-8 text-stone-500 mb-2.5" />
+                <h4 className="text-stone-300 font-medium text-sm">Esperando ejecución</h4>
+                <p className="text-xs text-stone-400 max-w-sm mt-1">
                   Haz clic en <strong>"Ejecutar Inferencia"</strong> en el panel izquierdo para visualizar la evaluación de condiciones y el disparo de reglas.
                 </p>
               </div>

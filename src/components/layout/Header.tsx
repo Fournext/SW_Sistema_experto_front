@@ -1,6 +1,8 @@
-import React from 'react';
-import { BookOpen, Menu } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { BookOpen, Menu, ShieldCheck, LogOut } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Permisos, usePuede } from '../../config/permisos';
+import { useAuthStore } from '../../features/auth/authStore';
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -9,6 +11,20 @@ export interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sistemaNombre }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const puedeCentral = usePuede(Permisos.CENTRAL_ACCEDER);
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
+
+  const cerrarSesion = async () => {
+    setCerrandoSesion(true);
+    try {
+      await logout();
+    } finally {
+      navigate('/central/login', { replace: true });
+    }
+  };
 
   const getSectionTitle = () => {
     if (location.pathname.includes('/editor')) return 'Editor Visual de Reglas';
@@ -45,11 +61,20 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sistemaNombre }
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200/90">
-          <span className="w-1.5 h-1.5 rounded-full bg-teal-500 mr-1.5 animate-pulse" />
-          Laboratorio Docente
+      <div className="flex items-center gap-2 sm:gap-3">
+        {puedeCentral && (
+          <Link to="/central" className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-2 text-xs font-semibold text-teal-800 transition-colors hover:bg-teal-100" title="Admin Central">
+            <ShieldCheck className="h-4 w-4" />
+            <span className="hidden md:inline">Admin Central</span>
+          </Link>
+        )}
+        <span className="hidden sm:block max-w-40 truncate text-xs font-semibold text-stone-700" title={user?.nombre || user?.username}>
+          {user?.nombre || user?.username}
         </span>
+        <button type="button" onClick={cerrarSesion} disabled={cerrandoSesion} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 disabled:opacity-50" aria-label="Cerrar sesión" title="Cerrar sesión">
+          <LogOut className="h-4 w-4" />
+          <span className="hidden sm:inline">{cerrandoSesion ? 'Saliendo…' : 'Cerrar sesión'}</span>
+        </button>
       </div>
     </header>
   );

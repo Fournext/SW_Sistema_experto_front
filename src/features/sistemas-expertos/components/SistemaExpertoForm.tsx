@@ -57,13 +57,15 @@ export const SistemaExpertoForm: React.FC<SistemaExpertoFormProps> = ({
         <input
           type="checkbox"
           id="activo"
-          className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+          className="w-4 h-4 text-teal-700 rounded border-stone-300 focus:ring-teal-700 cursor-pointer"
           {...register('activo')}
         />
-        <label htmlFor="activo" className="text-sm font-medium text-slate-700 cursor-pointer">
+        <label htmlFor="activo" className="text-sm font-medium text-stone-700 cursor-pointer">
           Habilitar sistema como activo
         </label>
       </div>
+
+      <p className="text-xs text-slate-500">Los sistemas en borrador solo son visibles para el docente. Actívalo para compartirlo con los estudiantes.</p>
 
       <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
         {onCancel && (

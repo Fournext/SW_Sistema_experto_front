@@ -205,3 +205,11 @@ El frontend se conecta a los siguientes endpoints REST:
 | **Motor de Inferencia** | `POST` | `/api/v1/sistemas-expertos/{id}/inferencias/` |
 | | `GET` | `/api/v1/inferencias/{id}/` |
 | | `GET` | `/api/v1/inferencias/{id}/detalles/` |
+
+## Acceso unificado y administración
+
+La entrada es `/central/login`; los estudiantes pueden crear una cuenta en `/registro-estudiante`. La sesión utiliza JWT, renueva el acceso al recibir un 401 y vuelve a consultar `/auth/yo/` al recargar. Al cerrar sesión se eliminan los tokens y la caché de consultas.
+
+Configura `VITE_API_URL` con la base `/api/v1` y `VITE_SISTEMA_SLUG` con el identificador del software. El valor predeterminado `sistema-experto` genera permisos como `sistema_experto_sistemas_ver`. Los 56 permisos se definen en `src/config/permisos.ts`; las comprobaciones de varios permisos requieren todos ellos. La bandera `es_admin_central` determina el destino inicial; el acceso a cada sección requiere sus permisos explícitos.
+
+Las rutas de autenticación son `/auth/login/`, `/auth/registro-estudiante/`, `/auth/token/refresh/`, `/auth/yo/` y `/auth/logout/`. El contrato administrativo propuesto está en [src/features/central/README.md](src/features/central/README.md). Debe coincidir con los endpoints y la autorización del backend Django.

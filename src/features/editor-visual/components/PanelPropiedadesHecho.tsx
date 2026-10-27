@@ -9,8 +9,8 @@ import type { FlowNode } from '../types/types';
 
 const hechoPropsSchema = z.object({
   nombre: z.string().min(1, 'El nombre es obligatorio'),
-  valor: z.string().min(1, 'El valor es obligatorio'),
-  tipo_dato: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO']),
+  valor: z.string(),
+  tipo_dato: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO', 'OPCION']),
   es_inicial: z.boolean(),
 });
 
@@ -37,8 +37,8 @@ export const PanelPropiedadesHecho: React.FC<PanelPropiedadesHechoProps> = ({
     resolver: zodResolver(hechoPropsSchema),
     defaultValues: {
       nombre: String(nodo.data.nombre || ''),
-      valor: String(nodo.data.valor || ''),
-      tipo_dato: (nodo.data.tipo_dato as 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO') || 'TEXTO',
+      valor: String(nodo.data.valor ?? ''),
+      tipo_dato: (nodo.data.tipo_dato as 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO' | 'OPCION') || 'TEXTO',
       es_inicial: nodo.data.es_inicial !== false,
     },
   });
@@ -46,8 +46,8 @@ export const PanelPropiedadesHecho: React.FC<PanelPropiedadesHechoProps> = ({
   useEffect(() => {
     reset({
       nombre: String(nodo.data.nombre || ''),
-      valor: String(nodo.data.valor || ''),
-      tipo_dato: (nodo.data.tipo_dato as 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO') || 'TEXTO',
+      valor: String(nodo.data.valor ?? ''),
+      tipo_dato: (nodo.data.tipo_dato as 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO' | 'OPCION') || 'TEXTO',
       es_inicial: nodo.data.es_inicial !== false,
     });
   }, [nodo, reset]);
@@ -67,6 +67,7 @@ export const PanelPropiedadesHecho: React.FC<PanelPropiedadesHechoProps> = ({
         label="Tipo de Dato"
         options={[
           { value: 'TEXTO', label: 'Texto' },
+          { value: 'OPCION', label: 'Opción (Cualitativo)' },
           { value: 'ENTERO', label: 'Entero' },
           { value: 'DECIMAL', label: 'Decimal' },
           { value: 'BOOLEANO', label: 'Booleano' },
@@ -80,11 +81,11 @@ export const PanelPropiedadesHecho: React.FC<PanelPropiedadesHechoProps> = ({
         <Select
           label="Valor Asignado"
           options={[
+            { value: '', label: 'Sin valor inicial' },
             { value: 'true', label: 'Verdadero (True)' },
             { value: 'false', label: 'Falso (False)' },
           ]}
           error={errors.valor?.message}
-          required
           {...register('valor')}
         />
       ) : (
@@ -93,7 +94,6 @@ export const PanelPropiedadesHecho: React.FC<PanelPropiedadesHechoProps> = ({
           type={tipoDato === 'ENTERO' || tipoDato === 'DECIMAL' ? 'number' : 'text'}
           step={tipoDato === 'ENTERO' ? '1' : tipoDato === 'DECIMAL' ? 'any' : undefined}
           error={errors.valor?.message}
-          required
           {...register('valor')}
         />
       )}

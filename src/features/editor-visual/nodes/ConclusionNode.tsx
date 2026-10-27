@@ -41,7 +41,7 @@ export const ConclusionNode: React.FC<NodeProps<FlowNode>> = memo(({ data, selec
           Conclusión (THEN)
         </span>
         {data.isLocal && (
-          <span className="text-[9px] font-bold bg-purple-600 text-white px-1.5 py-0.5 rounded-full animate-pulse">
+          <span className="text-[9px] font-medium bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded font-sans">
             Pendiente
           </span>
         )}

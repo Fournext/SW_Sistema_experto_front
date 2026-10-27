@@ -1,4 +1,4 @@
-import httpClient from '@/services/httpClient';
+import httpClient from '@/services/trabajoHttpClient';
 import type {
   BaseConocimiento,
   Hecho,
@@ -40,6 +40,8 @@ const normalizeVariable = (v: unknown): Variable => {
     tipo_dato: tipo,
     valor_por_defecto: valorDefecto,
     valor_defecto: valorDefecto,
+    es_inicial: raw.es_inicial === true,
+    pregunta: raw.pregunta ? String(raw.pregunta) : '',
   };
 };
 
@@ -95,6 +97,7 @@ export const baseConocimientoService = {
     baseConocimientoId: number | string,
     datos: CrearVariableDTO
   ): Promise<Variable> {
+    const raw = datos as unknown as Record<string, unknown>;
     const payload = {
       nombre: datos.nombre,
       tipo_dato: (datos as unknown as Record<string, unknown>).tipo_dato || datos.tipo || 'TEXTO',
@@ -103,6 +106,8 @@ export const baseConocimientoService = {
           ? (datos as unknown as Record<string, unknown>).valor_defecto
           : datos.valor_por_defecto || null,
       descripcion: datos.descripcion || '',
+      es_inicial: raw.es_inicial === true,
+      pregunta: raw.pregunta ? String(raw.pregunta) : null,
     };
     const response = await httpClient.post<Variable>(
       `/bases-conocimiento/${baseConocimientoId}/variables/`,
@@ -123,6 +128,8 @@ export const baseConocimientoService = {
     if (raw.valor_defecto !== undefined) payload.valor_defecto = raw.valor_defecto;
     else if (datos.valor_por_defecto !== undefined) payload.valor_defecto = datos.valor_por_defecto;
     if (datos.descripcion !== undefined) payload.descripcion = datos.descripcion;
+    if (raw.es_inicial !== undefined) payload.es_inicial = Boolean(raw.es_inicial);
+    if (raw.pregunta !== undefined) payload.pregunta = raw.pregunta ? String(raw.pregunta) : null;
 
     const response = await httpClient.patch<Variable>(`/variables/${id}/`, payload);
     return normalizeVariable(response.data);

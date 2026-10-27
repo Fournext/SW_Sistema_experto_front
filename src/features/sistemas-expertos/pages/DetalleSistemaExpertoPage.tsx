@@ -1,3 +1,5 @@
+import { Permisos, usePuede } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -30,9 +32,11 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
   const { actualizar, eliminar } = useSistemaExpertoMutations();
   const [isEditing, setIsEditing] = useState(false);
   const confirmDialog = useConfirmDialog();
+  const puedeEditar = usePuede(Permisos.SISTEMAS_EDITAR);
+  const puedeEliminar = usePuede(Permisos.SISTEMAS_ELIMINAR);
 
   const handleActualizar = async (data: SistemaExpertoFormData) => {
-    if (!id) return;
+    if (!id || !puedeEditar) return;
     try {
       await actualizar.mutateAsync({
         id,
@@ -40,6 +44,7 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
           nombre: data.nombre,
           descripcion: data.descripcion,
           activo: data.activo,
+          ...(sistema?.estado === 'ARCHIVADO' && !data.activo ? { estado: 'ARCHIVADO' as const } : {}),
         },
       });
       setIsEditing(false);
@@ -49,7 +54,7 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
   };
 
   const handleEliminar = () => {
-    if (!id) return;
+    if (!id || !puedeEliminar) return;
     confirmDialog.confirm({
       title: '¿Eliminar sistema experto?',
       message:
@@ -103,9 +108,8 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
       })
     : 'No disponible';
 
-  const esActivo =
-    sistema.activo !== false &&
-    !sistema.estado?.toLowerCase().includes('borrador');
+  const esActivo = sistema.estado ? sistema.estado === 'ACTIVO' : sistema.activo === true;
+  const estadoVisible = sistema.estado === 'ARCHIVADO' ? 'Archivado' : esActivo ? 'Activo para Docencia' : 'Borrador';
 
   return (
     <div className="space-y-6">
@@ -122,16 +126,16 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
 
         <div className="flex items-center gap-2">
           {!isEditing && (
-            <Button
+            <Permiso permisos={[Permisos.SISTEMAS_EDITAR]}><Button
               variant="outline"
               size="sm"
               icon={<Edit2 className="w-3.5 h-3.5" />}
               onClick={() => setIsEditing(true)}
             >
               Editar Sistema
-            </Button>
+            </Button></Permiso>
           )}
-          <Button
+          <Permiso permisos={[Permisos.SISTEMAS_ELIMINAR]}><Button
             variant="ghost"
             size="sm"
             icon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
@@ -139,7 +143,7 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
             className="text-rose-600 hover:bg-rose-50"
           >
             Eliminar
-          </Button>
+          </Button></Permiso>
         </div>
       </div>
 
@@ -165,14 +169,14 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
             <Card>
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                  <div className="w-12 h-12 rounded-xl bg-teal-50 text-teal-800 border border-teal-200/80 flex items-center justify-center font-bold">
                     <BookOpen className="w-6 h-6" />
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">{sistema.nombre}</h2>
                     <div className="flex items-center gap-2 mt-1">
-                      <Badge variant={sistema.activo !== false ? 'success' : 'neutral'} dot size="sm">
-                        {sistema.activo !== false ? 'Activo para Docencia' : 'Borrador'}
+                      <Badge variant={esActivo ? 'success' : 'neutral'} dot size="sm">
+                        {estadoVisible}
                       </Badge>
                       <span className="text-xs text-slate-400">ID #{sistema.id}</span>
                     </div>
@@ -197,21 +201,21 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-slate-400" />
-                  <span>Estado: <strong className="text-slate-700">{sistema.activo !== false ? 'Habilitado' : 'Deshabilitado'}</strong></span>
+                  <span>Estado: <strong className="text-slate-700">{estadoVisible}</strong></span>
                 </div>
               </div>
             </Card>
 
             {/* Guía didáctica para el docente */}
-            <div className="p-5 bg-gradient-to-r from-indigo-50/70 to-sky-50/70 border border-indigo-100/80 rounded-2xl">
-              <h4 className="text-sm font-bold text-indigo-950 flex items-center gap-2 mb-2">
-                <CheckCircle2 className="w-4 h-4 text-indigo-600" />
+            <div className="p-5 bg-stone-50 border border-stone-200 rounded-xl">
+              <h4 className="text-sm font-bold text-stone-900 flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-4 h-4 text-teal-700" />
                 Flujo de Trabajo Recomendado
               </h4>
-              <p className="text-xs text-indigo-900/80 leading-relaxed mb-3">
+              <p className="text-xs text-stone-600 leading-relaxed mb-3">
                 Para preparar una sesión de aprendizaje completa con este sistema experto:
               </p>
-              <ol className="list-decimal list-inside text-xs text-indigo-950 space-y-1.5 font-medium">
+              <ol className="list-decimal list-inside text-xs text-stone-700 space-y-1.5 font-medium">
                 <li>Define los hechos y variables en la <strong>Base de Conocimiento</strong>.</li>
                 <li>Diseña las reglas y relaciones gráficas usando el <strong>Editor Visual</strong>.</li>
                 <li>Ejecuta y demuestra la resolución de problemas paso a paso en el <strong>Motor de Inferencia</strong>.</li>
@@ -226,7 +230,7 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
             </h3>
 
             {/* Módulo Editor Visual */}
-            <div
+            <Permiso permisos={[Permisos.EDITOR_VER]}><div
               onClick={() => navigate(`/sistemas/${id}/editor`)}
               className="p-5 bg-white hover:bg-sky-50/50 border border-slate-200 hover:border-sky-300 rounded-2xl shadow-2xs transition-all cursor-pointer group"
             >
@@ -242,10 +246,10 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
               <div className="mt-4 inline-flex items-center text-xs font-semibold text-sky-600">
                 Abrir editor →
               </div>
-            </div>
+            </div></Permiso>
 
             {/* Módulo Base de Conocimiento */}
-            <div
+            <Permiso permisos={[Permisos.BASE_CONOCIMIENTO_VER]}><div
               onClick={() => navigate(`/sistemas/${id}/base-conocimiento`)}
               className="p-5 bg-white hover:bg-amber-50/50 border border-slate-200 hover:border-amber-300 rounded-2xl shadow-2xs transition-all cursor-pointer group"
             >
@@ -261,10 +265,10 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
               <div className="mt-4 inline-flex items-center text-xs font-semibold text-amber-600">
                 Gestionar tablas →
               </div>
-            </div>
+            </div></Permiso>
 
             {/* Módulo Inferencia */}
-            <div
+            <Permiso permisos={[Permisos.INFERENCIA_EJECUTAR]}><div
               onClick={() => navigate(`/sistemas/${id}/inferencia`)}
               className="p-5 bg-white hover:bg-emerald-50/50 border border-slate-200 hover:border-emerald-300 rounded-2xl shadow-2xs transition-all cursor-pointer group"
             >
@@ -280,7 +284,7 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
               <div className="mt-4 inline-flex items-center text-xs font-semibold text-emerald-600">
                 Ejecutar inferencia →
               </div>
-            </div>
+            </div></Permiso>
           </div>
         </div>
       )}

@@ -1,5 +1,8 @@
+import { Permisos, usePuede } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useActividadNavigate } from '@/hooks/useActividadNavigate';
 import { ArrowLeft, Database, Network, PlayCircle, Workflow, FileText, Variable as VariableIcon } from 'lucide-react';
 import { useBaseConocimiento, useHechos, useVariables, useReglas } from '../hooks/useBaseConocimiento';
 import { useSistemaExperto } from '@/features/sistemas-expertos/hooks/useSistemasExpertos';
@@ -14,8 +17,13 @@ export type BCActiveTab = 'reglas' | 'hechos' | 'variables';
 
 export const BaseConocimientoPage: React.FC = () => {
   const { id: sistemaId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const navigate = useActividadNavigate();
   const [activeTab, setActiveTab] = useState<BCActiveTab>('reglas');
+  const puedeReglas = usePuede(Permisos.REGLAS_VER);
+  const puedeHechos = usePuede(Permisos.HECHOS_VER);
+  const puedeVariables = usePuede(Permisos.VARIABLES_VER);
+  const tabsPermitidas = { reglas: puedeReglas, hechos: puedeHechos, variables: puedeVariables };
+  const visibleTab = tabsPermitidas[activeTab] ? activeTab : (Object.keys(tabsPermitidas) as BCActiveTab[]).find(tab => tabsPermitidas[tab]);
 
   const { data: sistema } = useSistemaExperto(sistemaId);
   const {
@@ -29,9 +37,9 @@ export const BaseConocimientoPage: React.FC = () => {
   // El ID para consultar hechos/variables/reglas es baseConocimiento.id o en su defecto sistemaId
   const effectiveBaseId = baseConocimiento?.id || sistemaId;
 
-  const { data: hechos } = useHechos(effectiveBaseId);
-  const { data: variables } = useVariables(effectiveBaseId);
-  const { data: reglas } = useReglas(effectiveBaseId);
+  const { data: hechos } = useHechos(puedeHechos ? effectiveBaseId : undefined);
+  const { data: variables } = useVariables(puedeVariables ? effectiveBaseId : undefined);
+  const { data: reglas } = useReglas(puedeReglas ? effectiveBaseId : undefined);
 
   if (isBaseLoading) {
     return (
@@ -90,22 +98,22 @@ export const BaseConocimientoPage: React.FC = () => {
 
         {/* Acceso directo a otros módulos vinculados */}
         <div className="flex items-center gap-2">
-          <Button
+          <Permiso permisos={[Permisos.EDITOR_VER]}><Button
             variant="outline"
             size="sm"
             icon={<Network className="w-3.5 h-3.5 text-teal-700" />}
             onClick={() => navigate(`/sistemas/${sistemaId}/editor`)}
           >
             Editor Visual
-          </Button>
-          <Button
+          </Button></Permiso>
+          <Permiso permisos={[Permisos.INFERENCIA_EJECUTAR]}><Button
             variant="outline"
             size="sm"
             icon={<PlayCircle className="w-3.5 h-3.5 text-emerald-700" />}
             onClick={() => navigate(`/sistemas/${sistemaId}/inferencia`)}
           >
             Motor Inferencia
-          </Button>
+          </Button></Permiso>
         </div>
       </div>
 
@@ -114,80 +122,81 @@ export const BaseConocimientoPage: React.FC = () => {
         {/* Barra de Pestañas */}
         <div className="flex border-b border-stone-200 bg-white px-3 pt-2 gap-2 overflow-x-auto">
           {/* Pestaña 1: Reglas de Inferencia */}
-          <button
+          <Permiso permisos={[Permisos.REGLAS_VER]}><button
             type="button"
             onClick={() => setActiveTab('reglas')}
             className={`flex items-center gap-2.5 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer rounded-t-lg select-none whitespace-nowrap ${
-              activeTab === 'reglas'
+              visibleTab === 'reglas'
                 ? 'border-teal-700 text-teal-900 bg-teal-50/60'
                 : 'border-transparent text-stone-500 hover:text-stone-900 hover:bg-stone-50'
             }`}
           >
-            <Workflow className={`w-4 h-4 ${activeTab === 'reglas' ? 'text-teal-700' : 'text-stone-400'}`} />
+            <Workflow className={`w-4 h-4 ${visibleTab === 'reglas' ? 'text-teal-700' : 'text-stone-400'}`} />
             <span>Reglas</span>
             {reglas !== undefined && (
               <span
                 className={`px-2 py-0.5 text-xs rounded-full font-bold ${
-                  activeTab === 'reglas' ? 'bg-teal-700 text-white' : 'bg-stone-100 text-stone-600'
+                  visibleTab === 'reglas' ? 'bg-teal-700 text-white' : 'bg-stone-100 text-stone-600'
                 }`}
               >
                 {reglas.length}
               </span>
             )}
-          </button>
+          </button></Permiso>
 
           {/* Pestaña 2: Base de Hechos */}
-          <button
+          <Permiso permisos={[Permisos.HECHOS_VER]}><button
             type="button"
             onClick={() => setActiveTab('hechos')}
             className={`flex items-center gap-2.5 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer rounded-t-lg select-none whitespace-nowrap ${
-              activeTab === 'hechos'
+              visibleTab === 'hechos'
                 ? 'border-emerald-700 text-emerald-900 bg-emerald-50/60'
                 : 'border-transparent text-stone-500 hover:text-stone-900 hover:bg-stone-50'
             }`}
           >
-            <FileText className={`w-4 h-4 ${activeTab === 'hechos' ? 'text-emerald-700' : 'text-stone-400'}`} />
+            <FileText className={`w-4 h-4 ${visibleTab === 'hechos' ? 'text-emerald-700' : 'text-stone-400'}`} />
             <span>Base de Hechos</span>
             {hechos !== undefined && (
               <span
                 className={`px-2 py-0.5 text-xs rounded-full font-bold ${
-                  activeTab === 'hechos' ? 'bg-emerald-700 text-white' : 'bg-stone-100 text-stone-600'
+                  visibleTab === 'hechos' ? 'bg-emerald-700 text-white' : 'bg-stone-100 text-stone-600'
                 }`}
               >
                 {hechos.length}
               </span>
             )}
-          </button>
+          </button></Permiso>
 
           {/* Pestaña 3: Variables */}
-          <button
+          <Permiso permisos={[Permisos.VARIABLES_VER]}><button
             type="button"
             onClick={() => setActiveTab('variables')}
             className={`flex items-center gap-2.5 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer rounded-t-lg select-none whitespace-nowrap ${
-              activeTab === 'variables'
+              visibleTab === 'variables'
                 ? 'border-teal-600 text-teal-900 bg-teal-50/40'
                 : 'border-transparent text-stone-500 hover:text-stone-900 hover:bg-stone-50'
             }`}
           >
-            <VariableIcon className={`w-4 h-4 ${activeTab === 'variables' ? 'text-teal-600' : 'text-stone-400'}`} />
+            <VariableIcon className={`w-4 h-4 ${visibleTab === 'variables' ? 'text-teal-600' : 'text-stone-400'}`} />
             <span>Variables</span>
             {variables !== undefined && (
               <span
                 className={`px-2 py-0.5 text-xs rounded-full font-bold ${
-                  activeTab === 'variables' ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-600'
+                  visibleTab === 'variables' ? 'bg-teal-600 text-white' : 'bg-stone-100 text-stone-600'
                 }`}
               >
                 {variables.length}
               </span>
             )}
-          </button>
+          </button></Permiso>
         </div>
 
         {/* Contenido de la pestaña activa */}
         <div className="p-6">
-          {activeTab === 'reglas' && <ReglasSection baseConocimientoId={effectiveBaseId} />}
-          {activeTab === 'hechos' && <HechosTab baseConocimientoId={effectiveBaseId} />}
-          {activeTab === 'variables' && <VariablesSection baseConocimientoId={effectiveBaseId} />}
+          {!visibleTab && <p className="text-sm text-stone-500">No tiene permisos para consultar hechos, variables o reglas.</p>}
+          {visibleTab === 'reglas' && <ReglasSection baseConocimientoId={effectiveBaseId} />}
+          {visibleTab === 'hechos' && <HechosTab baseConocimientoId={effectiveBaseId} />}
+          {visibleTab === 'variables' && <VariablesSection baseConocimientoId={effectiveBaseId} />}
         </div>
       </div>
     </div>

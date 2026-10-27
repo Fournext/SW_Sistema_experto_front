@@ -1,3 +1,5 @@
+import { Permisos, usePuede } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React from 'react';
 import { X, Trash2 } from 'lucide-react';
 import useEditorStore from '../store/editorStore';
@@ -37,6 +39,7 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
   reglas = [],
 }) => {
   const { nodoSeleccionado, panelAbierto, cerrarPanel } = useEditorStore();
+  const puedeEditar = usePuede(Permisos.EDITOR_NODOS_EDITAR);
 
   if (!panelAbierto || !nodoSeleccionado) return null;
 
@@ -76,7 +79,7 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
       </div>
 
       {/* Formulario según el tipo de nodo */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <fieldset disabled={!puedeEditar} className="flex-1 overflow-y-auto p-4 disabled:opacity-70">
         {tipo === 'HECHO' && (
           <PanelPropiedadesHecho
             nodo={nodoSeleccionado}
@@ -122,11 +125,11 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
             reglas={reglas}
           />
         )}
-      </div>
+      </fieldset>
 
       {/* Footer con acción de eliminar nodo */}
       <div className="p-4 border-t border-slate-100 bg-slate-50/70">
-        <Button
+        <Permiso permisos={[Permisos.EDITOR_NODOS_ELIMINAR]}><Button
           variant="ghost"
           size="sm"
           className="w-full text-rose-600 hover:bg-rose-50 border border-rose-200"
@@ -134,7 +137,7 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
           onClick={() => onEliminarNodo(nodoSeleccionado.id)}
         >
           Eliminar Nodo del Lienzo
-        </Button>
+        </Button></Permiso>
       </div>
     </aside>
   );

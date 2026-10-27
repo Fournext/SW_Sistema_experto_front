@@ -1,4 +1,4 @@
-export type TipoDato = 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO';
+export type TipoDato = 'TEXTO' | 'ENTERO' | 'DECIMAL' | 'BOOLEANO' | 'OPCION';
 export type OperadorComparacion = '==' | '!=' | '>' | '<' | '>=' | '<=';
 
 export interface Hecho {
@@ -6,6 +6,8 @@ export interface Hecho {
   nombre: string;
   valor: string;
   tipo_dato: TipoDato;
+  opciones?: string[];
+  pregunta?: string;
   es_inicial: boolean;
   base_conocimiento?: number | string;
   base_conocimiento_id?: number | string;
@@ -17,8 +19,11 @@ export interface Variable {
   nombre: string;
   tipo: TipoDato;
   tipo_dato?: TipoDato;
+  opciones?: string[];
   valor_por_defecto?: string;
   valor_defecto?: string;
+  pregunta?: string;
+  es_inicial?: boolean;
   descripcion?: string;
   base_conocimiento?: number | string;
   base_conocimiento_id?: number | string;
@@ -78,6 +83,8 @@ export interface CrearHechoDTO {
   nombre: string;
   valor: string;
   tipo_dato: TipoDato;
+  opciones?: string[];
+  pregunta?: string;
   es_inicial: boolean;
   base_conocimiento?: number;
 }
@@ -88,6 +95,8 @@ export interface CrearVariableDTO {
   tipo_dato?: TipoDato;
   valor_por_defecto?: string;
   valor_defecto?: string;
+  pregunta?: string;
+  es_inicial?: boolean;
   descripcion?: string;
   base_conocimiento?: number;
 }

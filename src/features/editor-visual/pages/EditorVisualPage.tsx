@@ -1,5 +1,8 @@
+import { Permiso } from '@/shared/components/Permiso';
+import { Permisos, usePuede } from '@/config/permisos';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useActividadNavigate } from '@/hooks/useActividadNavigate';
 import {
   ReactFlow,
   Controls,
@@ -50,7 +53,13 @@ const EMPTY_ARRAY: never[] = [];
 
 // Componente interno con acceso al contexto de useReactFlow()
 const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => {
-  const navigate = useNavigate();
+  const navigate = useActividadNavigate();
+  const puedeCrearNodos = usePuede(Permisos.EDITOR_NODOS_CREAR);
+  const puedeEditarNodos = usePuede(Permisos.EDITOR_NODOS_EDITAR);
+  const puedeEliminarNodos = usePuede(Permisos.EDITOR_NODOS_ELIMINAR);
+  const puedeCrearConexiones = usePuede(Permisos.EDITOR_CONEXIONES_CREAR);
+  const puedeEditarConexiones = usePuede(Permisos.EDITOR_CONEXIONES_EDITAR);
+  const puedeEliminarConexiones = usePuede(Permisos.EDITOR_CONEXIONES_ELIMINAR);
   const { data: sistema } = useSistemaExperto(sistemaId);
 
   // Consultar la Base de Conocimiento directamente para sincronización total
@@ -83,21 +92,15 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
   } = useReglas(effectiveBaseId);
 
   const hechos = useMemo(() => {
-    return baseConocimiento?.hechos && baseConocimiento.hechos.length > 0
-      ? baseConocimiento.hechos
-      : fetchedHechos || EMPTY_ARRAY;
+    return fetchedHechos ?? baseConocimiento?.hechos ?? EMPTY_ARRAY;
   }, [baseConocimiento?.hechos, fetchedHechos]);
 
   const variables = useMemo(() => {
-    return baseConocimiento?.variables && baseConocimiento.variables.length > 0
-      ? baseConocimiento.variables
-      : fetchedVars || EMPTY_ARRAY;
+    return fetchedVars ?? baseConocimiento?.variables ?? EMPTY_ARRAY;
   }, [baseConocimiento?.variables, fetchedVars]);
 
   const reglas = useMemo(() => {
-    return baseConocimiento?.reglas && baseConocimiento.reglas.length > 0
-      ? baseConocimiento.reglas
-      : fetchedReglas || EMPTY_ARRAY;
+    return fetchedReglas ?? baseConocimiento?.reglas ?? EMPTY_ARRAY;
   }, [baseConocimiento?.reglas, fetchedReglas]);
 
   const {
@@ -129,6 +132,9 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
   const [nodes, setNodes, onNodesChange] = useNodesState<FlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<FlowEdge>([]);
   const [guardando, setGuardando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
+  const nodosEliminandoRef = useRef(new Set<string>());
+  const guardandoPosicionesRef = useRef(false);
   const [sincronizando, setSincronizando] = useState(false);
   const yaInicializadoRef = useRef(false);
 
@@ -185,15 +191,26 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         nodosVisuales
       );
 
-      setNodes(nuevosNodos);
-      setEdges(nuevasEdges);
+      // Conservar IDs visuales creados en esta sesión aunque la consulta aún esté desactualizada.
+      setNodes((actuales) => {
+        const visualIds = new Map(actuales.map((n) => [n.id, n.data.nodoVisualId]));
+        return nuevosNodos
+          .filter((n) => !nodosEliminandoRef.current.has(n.id))
+          .map((n) => ({
+            ...n,
+            data: { ...n.data, nodoVisualId: visualIds.get(n.id) ?? n.data.nodoVisualId },
+          }));
+      });
+      setEdges(nuevasEdges.filter((e) =>
+        !nodosEliminandoRef.current.has(e.source) && !nodosEliminandoRef.current.has(e.target)
+      ));
 
       if (!yaInicializadoRef.current) {
         yaInicializadoRef.current = true;
         setTimeout(() => fitViewRef.current({ padding: 0.2 }), 250);
       }
     }
-  }, [isCargando, hechos, variables, reglas, nodosVisuales, sistemaId]);
+  }, [isCargando, hechos, variables, reglas, nodosVisuales, sistemaId, eliminando]);
 
   // Manejar click en nodo -> abrir panel de propiedades
   const onNodeClick = useCallback(
@@ -211,6 +228,7 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
   // Conectar nodos manualmente arrastrando handles (source -> target) con detección de tipo de relación
   const onConnect = useCallback(
     async (connection: Connection) => {
+      if (!puedeCrearConexiones) return;
       if (!connection.source || !connection.target) return;
 
       const sourceNode = nodes.find((n) => n.id === connection.source);
@@ -357,20 +375,22 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
 
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [nodes, setEdges, crearConexion, refetchReglas]
+    [nodes, setEdges, crearConexion, refetchReglas, puedeCrearConexiones]
   );
 
   // Re-conectar extremo de relación arrastrándolo a otro handle con el ratón
   const onReconnect = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
+      if (!puedeEditarConexiones) return;
       setEdges((els) => reconnectEdge(oldEdge, newConnection, els));
     },
-    [setEdges]
+    [setEdges, puedeEditarConexiones]
   );
 
   // Eliminar conexiones y desvincular relaciones del dominio
   const onEdgesDelete = useCallback(
     (edgesToDelete: Edge[]) => {
+      if (!puedeEliminarConexiones) return;
       // 1. Limpiar puntos de control guardados en localStorage
       try {
         const savedEdges = localStorage.getItem(`editor_edges_v2_${sistemaId}`);
@@ -459,56 +479,68 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         }
       });
     },
-    [sistemaId, refetchReglas, setNodes]
+    [sistemaId, refetchReglas, setNodes, puedeEliminarConexiones]
   );
 
   // Eliminar nodos seleccionados del canvas, del editor visual y de la Base de Conocimiento
   const onNodesDelete = useCallback(
-    (nodesToDelete: Node[]) => {
-      nodesToDelete.forEach(async (n) => {
-        const fn = n as FlowNode;
-        const visualId = fn.data?.nodoVisualId;
-        const entidadId = fn.data?.id;
-        const tipo = fn.type;
-
-        if (visualId && !String(visualId).startsWith('temp_') && !String(visualId).startsWith('local_')) {
-          try {
-            await editorVisualService.eliminarNodo(visualId);
-          } catch {
-            // ignore
-          }
-        }
-
-        if (entidadId && !String(entidadId).startsWith('temp_') && !String(entidadId).startsWith('local_')) {
-          try {
-            if (tipo === 'HECHO') {
-              await baseConocimientoService.eliminarHecho(entidadId);
-              refetchHechos();
-            } else if (tipo === 'VARIABLE') {
-              await baseConocimientoService.eliminarVariable(entidadId);
-              refetchVariables();
-            } else if (tipo === 'REGLA') {
-              await baseConocimientoService.eliminarRegla(entidadId);
-              refetchReglas();
-            } else if (tipo === 'CONDICION') {
-              await baseConocimientoService.eliminarCondicion(entidadId);
-              refetchReglas();
-            } else if (tipo === 'CONCLUSION') {
-              await baseConocimientoService.eliminarConclusion(entidadId);
-              refetchReglas();
-            }
-          } catch (err) {
-            console.error('Error al eliminar elemento de la base de conocimiento:', err);
-          }
-        }
-      });
+    async (nodesToDelete: Node[]) => {
+      if (!puedeEliminarNodos || guardandoPosicionesRef.current) return;
+      const pendientes = nodesToDelete.filter((n) => !nodosEliminandoRef.current.has(n.id));
+      if (!pendientes.length) return;
+      pendientes.forEach((n) => nodosEliminandoRef.current.add(n.id));
+      setEliminando(true);
+      setNodes((nds) => nds.filter((n) => !nodosEliminandoRef.current.has(n.id)));
+      setEdges((eds) => eds.filter((e) =>
+        !nodosEliminandoRef.current.has(e.source) && !nodosEliminandoRef.current.has(e.target)
+      ));
       cerrarPanel();
+      try {
+        await Promise.all(pendientes.map(async (n) => {
+          const fn = n as FlowNode;
+          const visualId = fn.data?.nodoVisualId;
+          const entidadId = fn.data?.id;
+          const tipo = fn.type;
+
+          if (visualId && !String(visualId).startsWith('temp_') && !String(visualId).startsWith('local_')) {
+            try {
+              await editorVisualService.eliminarNodo(visualId);
+            } catch {
+              // La entidad de dominio se elimina aunque el nodo visual ya no exista.
+            }
+          }
+
+          if (entidadId && !String(entidadId).startsWith('temp_') && !String(entidadId).startsWith('local_')) {
+            try {
+              if (tipo === 'HECHO') {
+                await baseConocimientoService.eliminarHecho(entidadId);
+              } else if (tipo === 'VARIABLE') {
+                await baseConocimientoService.eliminarVariable(entidadId);
+              } else if (tipo === 'REGLA') {
+                await baseConocimientoService.eliminarRegla(entidadId);
+              } else if (tipo === 'CONDICION') {
+                await baseConocimientoService.eliminarCondicion(entidadId);
+              } else if (tipo === 'CONCLUSION') {
+                await baseConocimientoService.eliminarConclusion(entidadId);
+              }
+            } catch (err) {
+              console.error('Error al eliminar elemento de la base de conocimiento:', err);
+            }
+          }
+        }));
+      } finally {
+        // Esperar a que ambas consultas reflejen el borrado antes de permitir guardar.
+        await Promise.all([refetchHechos(), refetchVariables(), refetchReglas(), refetchEditorVisual(), refetchBase()]);
+        pendientes.forEach((n) => nodosEliminandoRef.current.delete(n.id));
+        setEliminando(nodosEliminandoRef.current.size > 0);
+      }
     },
-    [cerrarPanel, refetchHechos, refetchVariables, refetchReglas]
+    [cerrarPanel, refetchHechos, refetchVariables, refetchReglas, refetchEditorVisual, refetchBase, puedeEliminarNodos, setNodes, setEdges]
   );
 
   // Agregar nuevo nodo individual al lienzo y sincronizarlo con la Base de Conocimiento y el Editor Visual
   const handleAgregarNodo = async (tipo: TipoNodo) => {
+    if (!puedeCrearNodos) return;
     if (!effectiveBaseId) {
       console.warn('No hay base de conocimiento disponible aún');
       return;
@@ -522,7 +554,7 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         const nombreDefault = `Hecho_${nodes.filter((n) => n.type === 'HECHO').length + 1}`;
         const nuevoHecho = await baseConocimientoService.crearHecho(effectiveBaseId, {
           nombre: nombreDefault,
-          valor: 'true',
+          valor: '',
           tipo_dato: 'TEXTO',
           es_inicial: true,
         });
@@ -822,6 +854,7 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
     nodoId: string,
     nuevosDatos: Partial<NodoDatosGenerales>
   ) => {
+    if (!puedeEditarNodos) return;
     setGuardando(true);
     try {
       const targetNode = nodes.find((n) => n.id === nodoId);
@@ -1162,44 +1195,13 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
   // Eliminar nodo desde el panel lateral
   const handleEliminarNodo = async (nodoId: string) => {
     const targetNode = nodes.find((n) => n.id === nodoId);
-    const visualId = targetNode?.data?.nodoVisualId;
-    const entidadId = targetNode?.data?.id;
-    const tipo = targetNode?.type;
-
-    setNodes((nds) => nds.filter((n) => n.id !== nodoId));
-    setEdges((eds) => eds.filter((e) => e.source !== nodoId && e.target !== nodoId));
-    cerrarPanel();
-
-    try {
-      if (visualId && !String(visualId).startsWith('temp_') && !String(visualId).startsWith('local_')) {
-        await editorVisualService.eliminarNodo(visualId);
-      }
-      if (entidadId && !String(entidadId).startsWith('temp_') && !String(entidadId).startsWith('local_')) {
-        if (tipo === 'HECHO') {
-          await baseConocimientoService.eliminarHecho(entidadId);
-          refetchHechos();
-        } else if (tipo === 'VARIABLE') {
-          await baseConocimientoService.eliminarVariable(entidadId);
-          refetchVariables();
-        } else if (tipo === 'REGLA') {
-          await baseConocimientoService.eliminarRegla(entidadId);
-          refetchReglas();
-        } else if (tipo === 'CONDICION') {
-          await baseConocimientoService.eliminarCondicion(entidadId);
-          refetchReglas();
-        } else if (tipo === 'CONCLUSION') {
-          await baseConocimientoService.eliminarConclusion(entidadId);
-          refetchReglas();
-        }
-      }
-    } catch (err) {
-      console.error('Error al eliminar elemento:', err);
-    }
-    cerrarPanel();
+    if (targetNode) await onNodesDelete([targetNode]);
   };
 
   // Guardar todas las posiciones actuales de los nodos y relaciones en localStorage y backend
   const handleGuardarPosiciones = async () => {
+    if (!puedeEditarNodos || nodosEliminandoRef.current.size > 0 || guardandoPosicionesRef.current) return;
+    guardandoPosicionesRef.current = true;
     setGuardando(true);
     try {
       const posMap: Record<string, { x: number; y: number }> = {};
@@ -1251,21 +1253,27 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
               posicion_x: x,
               posicion_y: y,
             });
-            node.data.nodoVisualId = visualCreado.id;
+            setNodes((nds) => nds.map((n) => n.id === node.id
+              ? { ...n, data: { ...n.data, nodoVisualId: visualCreado.id } }
+              : n
+            ));
           } catch {
             // ignore
           }
         }
       }
+      await refetchEditorVisual();
     } catch (err) {
       console.error('Error al guardar posiciones:', err);
     } finally {
+      guardandoPosicionesRef.current = false;
       setGuardando(false);
     }
   };
 
   // Reorganizar automáticamente el grafo al diseño pedagógico (Regla -> IF -> Condición -> THEN -> Conclusión)
   const handleReorganizarGrafo = () => {
+    if (!puedeEditarNodos) return;
     localStorage.removeItem(`editor_pos_v2_${sistemaId}`);
     localStorage.removeItem(`editor_pos_${sistemaId}`);
     localStorage.removeItem(`editor_edges_v2_${sistemaId}`);
@@ -1284,14 +1292,14 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
   // SPINNER DE CARGA AL ENTRAR A LA VISTA
   if (isCargando) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400">
-        <div className="p-8 bg-white rounded-3xl shadow-lg border border-slate-100 flex flex-col items-center max-w-sm text-center space-y-4">
-          <Spinner size="lg" className="text-indigo-600" />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-stone-400">
+        <div className="p-8 bg-white rounded-xl shadow-xs border border-stone-200 flex flex-col items-center max-w-sm text-center space-y-4">
+          <Spinner size="lg" className="text-teal-700" />
           <div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-stone-900">
               Sincronizando con la Base de Conocimiento
             </h3>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-stone-500 mt-1">
               Cargando hechos, variables y reglas interconectadas en el lienzo...
             </p>
           </div>
@@ -1306,7 +1314,7 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         <button
           type="button"
           onClick={() => navigate(`/sistemas/${sistemaId}`)}
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-stone-500 hover:text-stone-800 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver a Sistemas
@@ -1332,39 +1340,39 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           <button
             type="button"
             onClick={() => navigate(`/sistemas/${sistemaId}`)}
-            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg border border-stone-200 text-stone-500 hover:text-stone-800 hover:bg-white transition-colors cursor-pointer"
             title="Volver al detalle"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Network className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
+              <Network className="w-5 h-5 text-teal-700" />
               Editor Visual — {sistema?.nombre || 'Sistema Experto'}
             </h2>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-stone-500">
               Sincronizado automáticamente con la Base de Conocimiento: Hechos, Variables, Condiciones y Reglas.
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
+          <Permiso permisos={[Permisos.BASE_CONOCIMIENTO_VER]}><Button
             variant="outline"
             size="sm"
             icon={<Database className="w-3.5 h-3.5 text-amber-500" />}
             onClick={() => navigate(`/sistemas/${sistemaId}/base-conocimiento`)}
           >
             Base C.
-          </Button>
-          <Button
+          </Button></Permiso>
+          <Permiso permisos={[Permisos.INFERENCIA_EJECUTAR]}><Button
             variant="outline"
             size="sm"
             icon={<PlayCircle className="w-3.5 h-3.5 text-emerald-600" />}
             onClick={() => navigate(`/sistemas/${sistemaId}/inferencia`)}
           >
             Inferencia
-          </Button>
+          </Button></Permiso>
         </div>
       </div>
 
@@ -1377,7 +1385,7 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           onSincronizar={handleSincronizarManual}
           onReorganizar={handleReorganizarGrafo}
           sincronizando={sincronizando}
-          guardando={guardando}
+          guardando={guardando || eliminando}
         />
       </div>
 
@@ -1386,8 +1394,8 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         <div className="flex-1 h-full w-full relative">
           {/* Indicador flotante cuando se sincroniza manualmente */}
           {sincronizando && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white/95 backdrop-blur-xs border border-indigo-200 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-semibold text-indigo-700 animate-pulse">
-              <Spinner size="sm" className="text-indigo-600" />
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-white border border-stone-200 px-3.5 py-1.5 rounded-lg shadow-sm flex items-center gap-2 text-xs font-medium text-stone-700">
+              <Spinner size="sm" className="text-teal-700" />
               <span>Sincronizando grafo con la Base de Conocimiento...</span>
             </div>
           )}
@@ -1395,19 +1403,19 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           {/* Estado vacío sugerente si no hay elementos */}
           {nodes.length === 0 && !isCargando && !sincronizando && (
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-              <div className="bg-white/95 backdrop-blur-xs p-6 rounded-2xl border border-slate-200 shadow-md text-center max-w-sm pointer-events-auto space-y-3">
-                <Database className="w-10 h-10 text-indigo-500 mx-auto" />
-                <h4 className="font-bold text-slate-800 text-sm">Base de Conocimiento Vacía</h4>
-                <p className="text-xs text-slate-500">
+              <div className="bg-white p-6 rounded-xl border border-stone-200 shadow-sm text-center max-w-sm pointer-events-auto space-y-3">
+                <Database className="w-10 h-10 text-stone-400 mx-auto" />
+                <h4 className="font-bold text-stone-800 text-sm">Base de Conocimiento Vacía</h4>
+                <p className="text-xs text-stone-500">
                   Agrega hechos, variables y reglas en la Base de Conocimiento o utiliza los botones superiores para diseñar el diagrama.
                 </p>
-                <Button
+                <Permiso permisos={[Permisos.BASE_CONOCIMIENTO_VER]}><Button
                   variant="primary"
                   size="sm"
                   onClick={() => navigate(`/sistemas/${sistemaId}/base-conocimiento`)}
                 >
                   Ir a Base de Conocimiento
-                </Button>
+                </Button></Permiso>
               </div>
             </div>
           )}
@@ -1415,11 +1423,19 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
+            onNodesChange={(changes) => onNodesChange(changes.filter(change =>
+              (change.type !== 'position' || puedeEditarNodos) && (change.type !== 'remove' || puedeEliminarNodos)
+            ))}
+            onEdgesChange={(changes) => onEdgesChange(changes.filter(change => change.type !== 'remove' || puedeEliminarConexiones))}
+            nodesDraggable={puedeEditarNodos}
+            nodesConnectable={puedeCrearConexiones}
+            onBeforeDelete={async ({ nodes: deletingNodes, edges: deletingEdges }) =>
+              !guardandoPosicionesRef.current &&
+              (!deletingNodes.length || puedeEliminarNodos) && (!deletingEdges.length || puedeEliminarConexiones)
+            }
             onConnect={onConnect}
             onReconnect={onReconnect}
-            edgesReconnectable={true}
+            edgesReconnectable={puedeEditarConexiones}
             reconnectRadius={25}
             onEdgesDelete={onEdgesDelete}
             onNodesDelete={onNodesDelete}

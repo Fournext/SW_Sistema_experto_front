@@ -1,3 +1,5 @@
+import { Permisos, usePuede } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React, { memo, useCallback, useState } from 'react';
 import {
   BaseEdge,
@@ -31,6 +33,8 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
 }) => {
   const { setEdges, screenToFlowPosition, deleteElements } = useReactFlow();
   const [isDragging, setIsDragging] = useState(false);
+  const puedeEditar = usePuede(Permisos.EDITOR_CONEXIONES_EDITAR);
+  const puedeEliminar = usePuede(Permisos.EDITOR_CONEXIONES_ELIMINAR);
 
   // Calcular ruta predeterminada suave
   const [defaultPath, defaultLabelX, defaultLabelY] = getBezierPath({
@@ -66,6 +70,7 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
     (event: React.MouseEvent) => {
       event.stopPropagation();
       event.preventDefault();
+      if (!puedeEditar) return;
       setIsDragging(true);
 
       const onMouseMove = (moveEvent: MouseEvent) => {
@@ -102,12 +107,13 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
       window.addEventListener('mousemove', onMouseMove);
       window.addEventListener('mouseup', onMouseUp);
     },
-    [id, screenToFlowPosition, setEdges]
+    [id, screenToFlowPosition, setEdges, puedeEditar]
   );
 
   const handleDoubleClick = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
+      if (!puedeEditar) return;
       // Restablecer punto de control para volver a la ruta predeterminada
       setEdges((eds) =>
         eds.map((edge) => {
@@ -123,20 +129,21 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
         })
       );
     },
-    [id, setEdges]
+    [id, setEdges, puedeEditar]
   );
 
   const handleDelete = useCallback(
     (event: React.MouseEvent) => {
       event.stopPropagation();
       event.preventDefault();
+      if (!puedeEliminar) return;
       if (typeof deleteElements === 'function') {
         deleteElements({ edges: [{ id }] });
       } else {
         setEdges((eds) => eds.filter((edge) => edge.id !== id));
       }
     },
-    [id, deleteElements, setEdges]
+    [id, deleteElements, setEdges, puedeEliminar]
   );
 
   return (
@@ -179,7 +186,7 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
             <span className="leading-none">{typeof label === 'string' ? label : 'RELACIÓN'}</span>
 
             {/* Botón para eliminar la relación */}
-            <button
+            <Permiso permisos={[Permisos.EDITOR_CONEXIONES_ELIMINAR]}><button
               type="button"
               onClick={handleDelete}
               title="Eliminar esta relación"
@@ -187,7 +194,7 @@ export const DraggableEdge: React.FC<EdgeProps> = memo(({
               aria-label="Eliminar relación"
             >
               <X className="w-2 h-2" />
-            </button>
+            </button></Permiso>
           </div>
         </div>
       </EdgeLabelRenderer>

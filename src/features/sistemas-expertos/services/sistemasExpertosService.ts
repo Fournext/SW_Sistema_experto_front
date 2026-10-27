@@ -1,9 +1,19 @@
-import httpClient from '@/services/httpClient';
+import httpClient from '@/services/trabajoHttpClient';
 import type {
   SistemaExperto,
   CrearSistemaExpertoDTO,
   ActualizarSistemaExpertoDTO,
 } from '../types/types';
+
+const payloadSistema = ({ activo, estado, ...datos }: ActualizarSistemaExpertoDTO) => ({
+  ...datos,
+  ...(estado !== undefined ? { estado } : activo !== undefined ? { estado: activo ? 'ACTIVO' : 'BORRADOR' } : {}),
+});
+
+const normalizarSistema = (sistema: SistemaExperto): SistemaExperto => ({
+  ...sistema,
+  activo: sistema.estado ? sistema.estado === 'ACTIVO' : sistema.activo ?? false,
+});
 
 export const sistemasExpertosService = {
   /**
@@ -15,10 +25,10 @@ export const sistemasExpertosService = {
     );
     // Tolera tanto formato plano de DRF como formato paginado
     if (Array.isArray(response.data)) {
-      return response.data;
+      return response.data.map(normalizarSistema);
     }
     if (response.data && Array.isArray(response.data.results)) {
-      return response.data.results;
+      return response.data.results.map(normalizarSistema);
     }
     return [];
   },
@@ -28,23 +38,23 @@ export const sistemasExpertosService = {
    */
   async obtenerPorId(id: number | string): Promise<SistemaExperto> {
     const response = await httpClient.get<SistemaExperto>(`/sistemas-expertos/${id}/`);
-    return response.data;
+    return normalizarSistema(response.data);
   },
 
   /**
    * Registra un nuevo sistema experto
    */
   async crear(datos: CrearSistemaExpertoDTO): Promise<SistemaExperto> {
-    const response = await httpClient.post<SistemaExperto>('/sistemas-expertos/', datos);
-    return response.data;
+    const response = await httpClient.post<SistemaExperto>('/sistemas-expertos/', payloadSistema(datos));
+    return normalizarSistema(response.data);
   },
 
   /**
    * Actualiza completamente un sistema experto existente
    */
   async actualizar(id: number | string, datos: ActualizarSistemaExpertoDTO): Promise<SistemaExperto> {
-    const response = await httpClient.put<SistemaExperto>(`/sistemas-expertos/${id}/`, datos);
-    return response.data;
+    const response = await httpClient.put<SistemaExperto>(`/sistemas-expertos/${id}/`, payloadSistema(datos));
+    return normalizarSistema(response.data);
   },
 
   /**
@@ -54,8 +64,8 @@ export const sistemasExpertosService = {
     id: number | string,
     datos: Partial<ActualizarSistemaExpertoDTO>
   ): Promise<SistemaExperto> {
-    const response = await httpClient.patch<SistemaExperto>(`/sistemas-expertos/${id}/`, datos);
-    return response.data;
+    const response = await httpClient.patch<SistemaExperto>(`/sistemas-expertos/${id}/`, payloadSistema(datos));
+    return normalizarSistema(response.data);
   },
 
   /**

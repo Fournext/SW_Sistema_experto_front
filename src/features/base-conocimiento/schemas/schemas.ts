@@ -6,14 +6,17 @@ export const hechoSchema = z
       .string()
       .min(1, 'El nombre del hecho es obligatorio')
       .max(100, 'Máximo 100 caracteres'),
-    valor: z.string().min(1, 'El valor del hecho es obligatorio'),
-    tipo_dato: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO'], {
-      message: 'Selecciona un tipo de dato válido (TEXTO, ENTERO, DECIMAL, BOOLEANO)',
+    valor: z.string(),
+    tipo_dato: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO', 'OPCION'], {
+      message: 'Selecciona un tipo de dato válido (TEXTO, ENTERO, DECIMAL, BOOLEANO, OPCION)',
     }),
+    opciones: z.array(z.string()).optional(),
+    pregunta: z.string().max(255, 'Máximo 255 caracteres').optional().or(z.literal('')),
     es_inicial: z.boolean(),
   })
   .superRefine((data, ctx) => {
     const val = data.valor.trim();
+    if (!val && data.tipo_dato !== 'OPCION') return;
     if (data.tipo_dato === 'BOOLEANO') {
       const lower = val.toLowerCase();
       if (lower !== 'true' && lower !== 'false') {
@@ -39,6 +42,20 @@ export const hechoSchema = z
           message: 'El valor debe ser un número decimal válido (ej: 12.5)',
         });
       }
+    } else if (data.tipo_dato === 'OPCION') {
+      if (!data.opciones || data.opciones.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['opciones'],
+          message: 'Debes definir al menos una opción disponible para este hecho',
+        });
+      } else if (val && !data.opciones.includes(val)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['valor'],
+          message: 'El valor seleccionado debe ser una de las opciones configuradas',
+        });
+      }
     }
   });
 
@@ -48,10 +65,12 @@ export const variableSchema = z
       .string()
       .min(1, 'El nombre de la variable es obligatorio')
       .max(100, 'Máximo 100 caracteres'),
-    tipo: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO'], {
-      message: 'Selecciona un tipo de dato válido (TEXTO, ENTERO, DECIMAL, BOOLEANO)',
+    tipo: z.enum(['TEXTO', 'ENTERO', 'DECIMAL', 'BOOLEANO', 'OPCION'], {
+      message: 'Selecciona un tipo de dato válido (TEXTO, ENTERO, DECIMAL, BOOLEANO, OPCION)',
     }),
     valor_por_defecto: z.string().optional().or(z.literal('')),
+    pregunta: z.string().max(255, 'Máximo 255 caracteres').optional().or(z.literal('')),
+    es_inicial: z.boolean().optional(),
     descripcion: z.string().max(300, 'Máximo 300 caracteres').optional().or(z.literal('')),
   })
   .superRefine((data, ctx) => {

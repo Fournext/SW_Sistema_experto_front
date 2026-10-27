@@ -90,6 +90,18 @@ export const PanelPropiedadesConclusion: React.FC<PanelPropiedadesConclusionProp
     if (tipoDatoElem === 'BOOLEANO') {
       const lower = valorActual.toLowerCase().trim();
       setValorResultante(lower === 'false' ? 'false' : 'true');
+    } else if (tipoDatoElem === 'OPCION') {
+      const elemOpciones: string[] =
+        tipoInicial === 'VARIABLE'
+          ? ((elem as any)?.opciones || [])
+          : ((elem as Hecho)?.opciones || []);
+      if (elemOpciones.includes(valorActual)) {
+        setValorResultante(valorActual);
+      } else if (elemOpciones.length > 0) {
+        setValorResultante(elemOpciones[0]);
+      } else {
+        setValorResultante(valorActual);
+      }
     } else {
       setValorResultante(valorActual);
     }
@@ -110,6 +122,11 @@ export const PanelPropiedadesConclusion: React.FC<PanelPropiedadesConclusionProp
           : (elementoSeleccionado as Hecho).tipo_dato || 'TEXTO'
       ).toUpperCase()
     : 'TEXTO';
+
+  const opcionesDisponibles: string[] =
+    tipoElemento === 'VARIABLE'
+      ? ((elementoSeleccionado as any)?.opciones || [])
+      : ((elementoSeleccionado as Hecho)?.opciones || []);
 
   // Manejar cambio de elemento seleccionado
   const handleElementoChange = (nuevoId: string) => {
@@ -132,6 +149,18 @@ export const PanelPropiedadesConclusion: React.FC<PanelPropiedadesConclusionProp
     if (nuevoTipoDato === 'BOOLEANO') {
       const lower = valorResultante.toLowerCase().trim();
       setValorResultante(lower === 'false' ? 'false' : 'true');
+    } else if (nuevoTipoDato === 'OPCION') {
+      const opcs: string[] =
+        tipoElemento === 'VARIABLE'
+          ? ((elem as any)?.opciones || [])
+          : ((elem as Hecho)?.opciones || []);
+      if (opcs.includes(valorResultante)) {
+        // mantener
+      } else if (opcs.length > 0) {
+        setValorResultante(opcs[0]);
+      } else {
+        setValorResultante('');
+      }
     } else if (nuevoTipoDato === 'ENTERO') {
       if (!/^-?\d+$/.test(valorResultante.trim())) {
         setValorResultante('');
@@ -168,6 +197,11 @@ export const PanelPropiedadesConclusion: React.FC<PanelPropiedadesConclusionProp
       const lower = valorTrim.toLowerCase();
       if (lower !== 'true' && lower !== 'false') {
         setErrorValidacion('El valor debe ser "true" o "false" para una variable de tipo Booleano.');
+        return;
+      }
+    } else if (tipoDato === 'OPCION') {
+      if (opcionesDisponibles.length > 0 && !opcionesDisponibles.includes(valorTrim)) {
+        setErrorValidacion(`El valor "${valorTrim}" no es una de las opciones válidas: ${opcionesDisponibles.join(', ')}`);
         return;
       }
     } else if (tipoDato === 'ENTERO') {
@@ -372,6 +406,37 @@ export const PanelPropiedadesConclusion: React.FC<PanelPropiedadesConclusionProp
               false (Falso)
             </button>
           </div>
+        ) : tipoDato === 'OPCION' ? (
+          opcionesDisponibles.length > 0 ? (
+            <Select
+              value={valorResultante}
+              onChange={(e) => {
+                setValorResultante(e.target.value);
+                setErrorValidacion(null);
+              }}
+              options={opcionesDisponibles.map((opc) => ({
+                value: opc,
+                label: opc,
+              }))}
+              required
+            />
+          ) : (
+            <div>
+              <Input
+                type="text"
+                value={valorResultante}
+                onChange={(e) => {
+                  setValorResultante(e.target.value);
+                  setErrorValidacion(null);
+                }}
+                placeholder="Escribe el valor de la opción..."
+                required
+              />
+              <p className="text-[11px] text-amber-600 mt-1">
+                Aviso: Este hecho/variable es de tipo OPCIÓN pero no tiene opciones configuradas en su definición.
+              </p>
+            </div>
+          )
         ) : tipoDato === 'ENTERO' ? (
           <Input
             type="number"
@@ -417,6 +482,7 @@ export const PanelPropiedadesConclusion: React.FC<PanelPropiedadesConclusionProp
 
         <p className="text-[11px] text-slate-500 mt-1">
           {tipoDato === 'BOOLEANO' && 'Selecciona el estado booleano resultante.'}
+          {tipoDato === 'OPCION' && 'Selecciona la opción que se asignará al deducir esta regla.'}
           {tipoDato === 'ENTERO' && 'Solo se permiten números enteros sin parte decimal.'}
           {tipoDato === 'DECIMAL' && 'Ingresa un valor numérico decimal o entero.'}
           {tipoDato === 'TEXTO' && 'Ingresa el texto que se asignará al deducir esta regla.'}

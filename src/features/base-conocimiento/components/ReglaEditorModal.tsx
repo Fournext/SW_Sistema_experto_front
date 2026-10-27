@@ -1,7 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, GitBranch, CheckCircle2, ArrowRight, ArrowLeft, Sliders, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Regla, Variable, Hecho, TipoDato } from '../types/types';
-import { useReglas, useReglasMutations, useVariablesMutations } from '../hooks/useBaseConocimiento';
+import {
+  useReglas,
+  useReglasMutations,
+  useVariablesMutations,
+  REGLAS_KEY,
+  BASE_CONOCIMIENTO_KEY,
+  VARIABLES_KEY,
+  HECHOS_KEY,
+} from '../hooks/useBaseConocimiento';
 import baseConocimientoService from '../services/baseConocimientoService';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
@@ -49,6 +58,7 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
   hechos = [],
   defaultNextNumber = 1,
 }) => {
+  const queryClient = useQueryClient();
   const { data: todasLasReglas } = useReglas(baseConocimientoId);
 
   // Derivar regla activa y reactiva desde la query global
@@ -58,7 +68,7 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
     return found || regla;
   }, [regla, todasLasReglas]);
 
-  const { crear, actualizar, agregarCondicion, eliminarCondicion, agregarConclusion, eliminarConclusion } =
+  const { actualizar, agregarCondicion, eliminarCondicion, agregarConclusion, eliminarConclusion } =
     useReglasMutations(baseConocimientoId);
   const { crear: crearVariableMut } = useVariablesMutations(baseConocimientoId);
 
@@ -92,37 +102,46 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
   const [conclError, setConclError] = useState<string | null>(null);
 
   // Estados para retraer / expandir los formularios
-  const [mostrarFormCondicion, setMostrarFormCondicion] = useState<boolean>(false);
-  const [mostrarFormConclusion, setMostrarFormConclusion] = useState<boolean>(false);
+  const [mostrarFormCondicion, setMostrarFormCondicion] = useState<boolean>(true);
+  const [mostrarFormConclusion, setMostrarFormConclusion] = useState<boolean>(true);
+  const lastOpenedKeyRef = React.useRef<string | null>(null);
 
-  // Inicializar valores al abrir o cambiar de regla
+  // Inicializar valores al abrir o cambiar de regla (no cuando se actualizan sus condiciones/conclusiones)
   useEffect(() => {
     if (isOpen) {
-      setActiveTab('propiedades');
-      setMostrarFormCondicion(false);
-      setMostrarFormConclusion(false);
-      if (regla) {
-        setNombre(regla.nombre || '');
-        setDescripcion(regla.descripcion || '');
-        setPrioridad(regla.prioridad ?? 10);
-        setFactorCerteza(Number(regla.factor_certeza ?? 1.0));
-        setActiva(regla.activa !== false);
-        setDraftCondiciones([]);
-        setDraftConclusiones([]);
-      } else {
-        setNombre(`R${defaultNextNumber}`);
-        setDescripcion('');
-        setPrioridad(10);
-        setFactorCerteza(1.0);
-        setActiva(true);
-        setDraftCondiciones([]);
-        setDraftConclusiones([]);
+      const currentKey = regla?.id ? `edit_${regla.id}` : `new_${defaultNextNumber}`;
+      if (lastOpenedKeyRef.current !== currentKey) {
+        lastOpenedKeyRef.current = currentKey;
+        setActiveTab('propiedades');
+        if (regla) {
+          setNombre(regla.nombre || '');
+          setDescripcion(regla.descripcion || '');
+          setPrioridad(regla.prioridad ?? 10);
+          setFactorCerteza(Number(regla.factor_certeza ?? 1.0));
+          setActiva(regla.activa !== false);
+          setDraftCondiciones([]);
+          setDraftConclusiones([]);
+          setMostrarFormCondicion(false);
+          setMostrarFormConclusion(false);
+        } else {
+          setNombre(`R${defaultNextNumber}`);
+          setDescripcion('');
+          setPrioridad(10);
+          setFactorCerteza(1.0);
+          setActiva(true);
+          setDraftCondiciones([]);
+          setDraftConclusiones([]);
+          setMostrarFormCondicion(true);
+          setMostrarFormConclusion(true);
+        }
+        setFormError(null);
+        resetCondForm();
+        resetConclForm();
       }
-      setFormError(null);
-      resetCondForm();
-      resetConclForm();
+    } else {
+      lastOpenedKeyRef.current = null;
     }
-  }, [isOpen, regla, defaultNextNumber]);
+  }, [isOpen, regla?.id, defaultNextNumber]);
 
   const resetCondForm = () => {
     setCondRefSeleccionada('');
@@ -199,7 +218,22 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
     return 'ENTERO';
   }, [condRefSeleccionada, condNuevaVarTipo, variables, hechos]);
 
-  // Ajustar operador y valor si tipo de dato es booleano o si cambia a no booleano
+  // Opciones disponibles para la condición si es tipo OPCION
+  const opcionesCondicion: string[] = useMemo(() => {
+    if (condRefSeleccionada.startsWith('hecho:')) {
+      const parts = condRefSeleccionada.split(':');
+      const h = hechos.find((item) => String(item.id) === parts[1]);
+      return h?.opciones || [];
+    }
+    if (condRefSeleccionada.startsWith('var:')) {
+      const parts = condRefSeleccionada.split(':');
+      const v = variables.find((item) => String(item.id) === parts[1]);
+      return (v as any)?.opciones || [];
+    }
+    return [];
+  }, [condRefSeleccionada, hechos, variables]);
+
+  // Ajustar operador y valor si tipo de dato es booleano u opcion
   useEffect(() => {
     if (tipoDatoCondicion === 'BOOLEANO') {
       if (condOperador !== '==' && condOperador !== '!=') {
@@ -208,12 +242,19 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
       if (condValor !== 'true' && condValor !== 'false') {
         setCondValor('true');
       }
+    } else if (tipoDatoCondicion === 'OPCION') {
+      if (condOperador !== '==' && condOperador !== '!=') {
+        setCondOperador('==');
+      }
+      if (opcionesCondicion.length > 0 && !opcionesCondicion.includes(condValor)) {
+        setCondValor(opcionesCondicion[0]);
+      }
     } else {
       if (condValor === 'true' || condValor === 'false') {
         setCondValor('');
       }
     }
-  }, [tipoDatoCondicion, condOperador, condValor]);
+  }, [tipoDatoCondicion, condOperador, condValor, opcionesCondicion]);
 
   // Tipo de dato para la conclusión en curso
   const tipoDatoConclusion: TipoDato = useMemo(() => {
@@ -233,25 +274,48 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
     return 'ENTERO';
   }, [conclDestSeleccionada, conclNuevaVarTipo, variables, hechos]);
 
+  // Opciones disponibles para la conclusión si es tipo OPCION
+  const opcionesConclusion: string[] = useMemo(() => {
+    if (conclDestSeleccionada.startsWith('hecho:')) {
+      const parts = conclDestSeleccionada.split(':');
+      const h = hechos.find((item) => String(item.id) === parts[1]);
+      return h?.opciones || [];
+    }
+    if (conclDestSeleccionada.startsWith('var:')) {
+      const parts = conclDestSeleccionada.split(':');
+      const v = variables.find((item) => String(item.id) === parts[1]);
+      return (v as any)?.opciones || [];
+    }
+    return [];
+  }, [conclDestSeleccionada, hechos, variables]);
+
   useEffect(() => {
     if (tipoDatoConclusion === 'BOOLEANO') {
       if (conclValor !== 'true' && conclValor !== 'false') {
         setConclValor('true');
+      }
+    } else if (tipoDatoConclusion === 'OPCION') {
+      if (opcionesConclusion.length > 0 && !opcionesConclusion.includes(conclValor)) {
+        setConclValor(opcionesConclusion[0]);
       }
     } else {
       if (conclValor === 'true' || conclValor === 'false') {
         setConclValor('');
       }
     }
-  }, [tipoDatoConclusion, conclValor]);
+  }, [tipoDatoConclusion, conclValor, opcionesConclusion]);
 
   // Validar valor según tipo
-  const validarValor = (valor: string, tipo: TipoDato): string | null => {
+  const validarValor = (valor: string, tipo: TipoDato, opcionesPermitidas?: string[]): string | null => {
     const v = valor.trim();
     if (!v) return 'El valor es obligatorio';
     if (tipo === 'BOOLEANO') {
       if (v.toLowerCase() !== 'true' && v.toLowerCase() !== 'false') {
         return 'El valor debe ser "true" o "false"';
+      }
+    } else if (tipo === 'OPCION') {
+      if (opcionesPermitidas && opcionesPermitidas.length > 0 && !opcionesPermitidas.includes(v)) {
+        return `Debes seleccionar una de las opciones válidas: ${opcionesPermitidas.join(', ')}`;
       }
     } else if (tipo === 'ENTERO') {
       if (!/^-?\d+$/.test(v)) {
@@ -306,7 +370,7 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
       return;
     }
 
-    const errorVal = validarValor(condValor, tipoDatoCondicion);
+    const errorVal = validarValor(condValor, tipoDatoCondicion, opcionesCondicion);
     if (errorVal) {
       setCondError(errorVal);
       return;
@@ -323,6 +387,8 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
             descripcion: 'Variable generada desde regla',
           });
           varId = createdVar.id;
+          await queryClient.invalidateQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] });
+          await queryClient.refetchQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] });
         }
 
         await agregarCondicion.mutateAsync({
@@ -398,7 +464,7 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
       return;
     }
 
-    const errorVal = validarValor(conclValor, tipoDatoConclusion);
+    const errorVal = validarValor(conclValor, tipoDatoConclusion, opcionesConclusion);
     if (errorVal) {
       setConclError(errorVal);
       return;
@@ -415,6 +481,8 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
             descripcion: 'Variable generada desde regla',
           });
           varId = createdVar.id;
+          await queryClient.invalidateQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] });
+          await queryClient.refetchQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] });
         }
 
         await agregarConclusion.mutateAsync({
@@ -471,6 +539,49 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
       return;
     }
 
+    // Para nueva regla: validar explícitamente que se haya hecho clic en Añadir Condición / Conclusión
+    if (!reglaActiva) {
+      if (draftCondiciones.length === 0) {
+        if (condRefSeleccionada && condValor.trim()) {
+          setFormError('Tienes una premisa en el formulario pero no le has dado clic a "Añadir Condición (IF)". Debes pulsar el botón para agregarla.');
+        } else {
+          setFormError('Debes agregar al menos una premisa / condición (IF) a la regla pulsando "Añadir Condición (IF)".');
+        }
+        setActiveTab('condiciones');
+        setMostrarFormCondicion(true);
+        return;
+      }
+
+      if (draftConclusiones.length === 0) {
+        if (conclDestSeleccionada && conclValor.trim()) {
+          setFormError('Tienes una consecuencia en el formulario pero no le has dado clic a "Añadir Conclusión (THEN)". Debes pulsar el botón para agregarla.');
+        } else {
+          setFormError('Debes agregar al menos una consecuencia / conclusión (THEN) a la regla pulsando "Añadir Conclusión (THEN)".');
+        }
+        setActiveTab('conclusiones');
+        setMostrarFormConclusion(true);
+        return;
+      }
+    } else {
+      // Para regla activa: verificar que no quede vacía
+      const totalConds = reglaActiva.condiciones?.length || 0;
+      const totalConcls = reglaActiva.conclusiones?.length || 0;
+
+      if (totalConds === 0) {
+        setFormError('La regla debe tener al menos una premisa (IF). Usa el botón "Añadir Condición (IF)" para agregarla.');
+        setActiveTab('condiciones');
+        setMostrarFormCondicion(true);
+        return;
+      }
+
+      if (totalConcls === 0) {
+        setFormError('La regla debe tener al menos una consecuencia (THEN). Usa el botón "Añadir Conclusión (THEN)" para agregarla.');
+        setActiveTab('conclusiones');
+        setMostrarFormConclusion(true);
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setFormError(null);
 
@@ -487,6 +598,15 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
             activa,
           },
         });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] }),
+          queryClient.refetchQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] }),
+          queryClient.invalidateQueries({ queryKey: [HECHOS_KEY, baseConocimientoId] }),
+          queryClient.refetchQueries({ queryKey: [HECHOS_KEY, baseConocimientoId] }),
+          queryClient.invalidateQueries({ queryKey: [REGLAS_KEY, baseConocimientoId] }),
+          queryClient.refetchQueries({ queryKey: [REGLAS_KEY, baseConocimientoId] }),
+          queryClient.invalidateQueries({ queryKey: [BASE_CONOCIMIENTO_KEY] }),
+        ]);
         onClose();
       } else {
         // Crear nueva regla con todos sus borradores
@@ -517,8 +637,8 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
           }
         }
 
-        // 2. Crear la regla
-        const nuevaRegla = await crear.mutateAsync({
+        // 2. Crear la regla en backend
+        const nuevaRegla = await baseConocimientoService.crearRegla(baseConocimientoId, {
           nombre: nombre.trim(),
           descripcion: descripcion.trim(),
           prioridad: Number(prioridad),
@@ -551,10 +671,23 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
           });
         }
 
+        // Refrescar e invalidar queries una vez que TODO (variables + regla + condiciones + conclusiones) esté guardado
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] }),
+          queryClient.refetchQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] }),
+          queryClient.invalidateQueries({ queryKey: [HECHOS_KEY, baseConocimientoId] }),
+          queryClient.refetchQueries({ queryKey: [HECHOS_KEY, baseConocimientoId] }),
+          queryClient.invalidateQueries({ queryKey: [REGLAS_KEY, baseConocimientoId] }),
+          queryClient.refetchQueries({ queryKey: [REGLAS_KEY, baseConocimientoId] }),
+          queryClient.invalidateQueries({ queryKey: [BASE_CONOCIMIENTO_KEY] }),
+        ]);
         onClose();
       }
     } catch (err: unknown) {
       setFormError(err instanceof Error ? err.message : 'Ocurrió un error al guardar la regla');
+      // Asegurar que las reglas y variables se sincronicen aun si hubo error parcial
+      queryClient.invalidateQueries({ queryKey: [VARIABLES_KEY, baseConocimientoId] });
+      queryClient.invalidateQueries({ queryKey: [REGLAS_KEY, baseConocimientoId] });
     } finally {
       setIsSubmitting(false);
     }
@@ -877,7 +1010,7 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
                       <Select
                         label="Operador"
                         options={
-                          tipoDatoCondicion === 'BOOLEANO'
+                          tipoDatoCondicion === 'BOOLEANO' || tipoDatoCondicion === 'OPCION'
                             ? [
                                 { value: '==', label: '== (Igual a)' },
                                 { value: '!=', label: '!= (Diferente de)' },
@@ -913,6 +1046,7 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
                           { value: 'ENTERO', label: 'ENTERO (0, 1, 2...)' },
                           { value: 'DECIMAL', label: 'DECIMAL (0.5, 38.2...)' },
                           { value: 'BOOLEANO', label: 'BOOLEANO (true / false)' },
+                          { value: 'OPCION', label: 'OPCION (Selección cualitativa)' },
                           { value: 'TEXTO', label: 'TEXTO' },
                         ]}
                         value={condNuevaVarTipo}
@@ -957,6 +1091,29 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
                           false (Falso)
                         </button>
                       </div>
+                    ) : tipoDatoCondicion === 'OPCION' ? (
+                      opcionesCondicion.length > 0 ? (
+                        <Select
+                          options={[
+                            { value: '', label: '-- Selecciona una opción esperada --' },
+                            ...opcionesCondicion.map((opc) => ({ value: opc, label: opc })),
+                          ]}
+                          value={condValor}
+                          onChange={(e) => setCondValor(e.target.value)}
+                        />
+                      ) : (
+                        <div className="space-y-1">
+                          <Input
+                            type="text"
+                            placeholder="Escribe la opción esperada..."
+                            value={condValor}
+                            onChange={(e) => setCondValor(e.target.value)}
+                          />
+                          <p className="text-[11px] text-amber-700 italic">
+                            Este hecho o variable no tiene opciones registradas aún. Escribe el valor o agrégalas desde el panel de Hechos.
+                          </p>
+                        </div>
+                      )
                     ) : (
                       <Input
                         type={tipoDatoCondicion === 'ENTERO' || tipoDatoCondicion === 'DECIMAL' ? 'number' : 'text'}
@@ -1166,6 +1323,7 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
                           { value: 'ENTERO', label: 'ENTERO (0, 1, 2...)' },
                           { value: 'DECIMAL', label: 'DECIMAL (0.5, 38.2...)' },
                           { value: 'BOOLEANO', label: 'BOOLEANO (true / false)' },
+                          { value: 'OPCION', label: 'OPCION (Selección cualitativa)' },
                           { value: 'TEXTO', label: 'TEXTO' },
                         ]}
                         value={conclNuevaVarTipo}
@@ -1210,6 +1368,29 @@ export const ReglaEditorModal: React.FC<ReglaEditorModalProps> = ({
                           false (Falso)
                         </button>
                       </div>
+                    ) : tipoDatoConclusion === 'OPCION' ? (
+                      opcionesConclusion.length > 0 ? (
+                        <Select
+                          options={[
+                            { value: '', label: '-- Selecciona una opción resultante --' },
+                            ...opcionesConclusion.map((opc) => ({ value: opc, label: opc })),
+                          ]}
+                          value={conclValor}
+                          onChange={(e) => setConclValor(e.target.value)}
+                        />
+                      ) : (
+                        <div className="space-y-1">
+                          <Input
+                            type="text"
+                            placeholder="Escribe el valor de la opción resultante..."
+                            value={conclValor}
+                            onChange={(e) => setConclValor(e.target.value)}
+                          />
+                          <p className="text-[11px] text-emerald-700 italic">
+                            Este elemento no tiene opciones registradas aún. Escribe el valor o agrégalas desde el panel de Hechos.
+                          </p>
+                        </div>
+                      )
                     ) : (
                       <Input
                         type={tipoDatoConclusion === 'ENTERO' || tipoDatoConclusion === 'DECIMAL' ? 'number' : 'text'}

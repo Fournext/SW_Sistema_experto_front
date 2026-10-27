@@ -1,3 +1,5 @@
+import { Permisos } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React from 'react';
 import { Edit2, Trash2, ArrowRight } from 'lucide-react';
 import type { Regla, Variable, Hecho, Condicion, Conclusion } from '../types/types';
@@ -109,22 +111,22 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
           </div>
 
           <div className="flex items-center gap-1 pl-2 border-l border-stone-200">
-            <button
+            <Permiso permisos={[Permisos.REGLAS_EDITAR]}><button
               type="button"
               onClick={() => onEdit(regla)}
               className="p-1.5 text-stone-400 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors cursor-pointer"
               title="Editar regla y cláusulas"
             >
               <Edit2 className="w-4 h-4" />
-            </button>
-            <button
+            </button></Permiso>
+            <Permiso permisos={[Permisos.REGLAS_ELIMINAR]}><button
               type="button"
               onClick={() => onDelete(regla)}
               className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
               title="Eliminar regla"
             >
               <Trash2 className="w-4 h-4" />
-            </button>
+            </button></Permiso>
           </div>
         </div>
       </div>
@@ -134,13 +136,13 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
         {condiciones.length === 0 && conclusiones.length === 0 ? (
           <div className="py-2 text-center text-stone-400 italic text-xs font-sans">
             Regla sin condiciones ni consecuencias definidas.{' '}
-            <button
+            <Permiso permisos={[Permisos.REGLAS_EDITAR]}><button
               type="button"
               onClick={() => onEdit(regla)}
               className="text-teal-700 font-semibold hover:underline cursor-pointer"
             >
               Hacer clic para editar
-            </button>
+            </button></Permiso>
           </div>
         ) : (
           <>

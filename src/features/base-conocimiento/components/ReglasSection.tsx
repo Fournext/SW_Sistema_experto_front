@@ -1,3 +1,5 @@
+import { Permisos, usePuede } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React, { useState, useMemo } from 'react';
 import { Plus, Workflow } from 'lucide-react';
 import { useReglas, useVariables, useHechos, useReglasMutations } from '../hooks/useBaseConocimiento';
@@ -24,6 +26,9 @@ export const ReglasSection: React.FC<ReglasSectionProps> = ({ baseConocimientoId
   const [modalOpen, setModalOpen] = useState(false);
   const [reglaAEditarId, setReglaAEditarId] = useState<string | number | null>(null);
   const confirmDialog = useConfirmDialog();
+  const puedeCrear = usePuede(Permisos.REGLAS_CREAR);
+  const puedeEditar = usePuede(Permisos.REGLAS_EDITAR);
+  const puedeEliminar = usePuede(Permisos.REGLAS_ELIMINAR);
 
   // Derivar regla seleccionada directamente desde la query de reglas para reactividad total
   const reglaAEditar = useMemo(() => {
@@ -32,16 +37,19 @@ export const ReglasSection: React.FC<ReglasSectionProps> = ({ baseConocimientoId
   }, [reglaAEditarId, reglas]);
 
   const handleEditar = (regla: Regla) => {
+    if (!puedeEditar) return;
     setReglaAEditarId(regla.id);
     setModalOpen(true);
   };
 
   const handleCrear = () => {
+    if (!puedeCrear) return;
     setReglaAEditarId(null);
     setModalOpen(true);
   };
 
   const handleEliminar = (regla: Regla) => {
+    if (!puedeEliminar) return;
     confirmDialog.confirm({
       title: `¿Eliminar regla "${regla.nombre}"?`,
       message: 'Esta regla y todas sus condiciones y conclusiones asociadas serán eliminadas permanentemente.',
@@ -88,14 +96,14 @@ export const ReglasSection: React.FC<ReglasSectionProps> = ({ baseConocimientoId
           </p>
         </div>
 
-        <Button
+        <Permiso permisos={[Permisos.REGLAS_CREAR]}><Button
           variant="primary"
           size="sm"
           icon={<Plus className="w-4 h-4" />}
           onClick={handleCrear}
         >
           Crear Regla
-        </Button>
+        </Button></Permiso>
       </div>
 
       {/* Lista de Reglas o Empty State */}
@@ -104,8 +112,8 @@ export const ReglasSection: React.FC<ReglasSectionProps> = ({ baseConocimientoId
           icon={<Workflow className="w-8 h-8 text-indigo-500" />}
           title="No hay reglas de inferencia creadas"
           description="Crea reglas de producción con premisas (IF) y consecuencias (THEN) para razonar sobre los hechos."
-          actionText="Crear primera regla"
-          onAction={handleCrear}
+          actionText={puedeCrear ? "Crear primera regla" : undefined}
+          onAction={puedeCrear ? handleCrear : undefined}
         />
       ) : (
         <div className="grid grid-cols-1 gap-3">

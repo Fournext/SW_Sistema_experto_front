@@ -23,7 +23,7 @@ export const LandingFooter: React.FC = () => {
               Software Educativo Interactivo de Apoyo Docente para la Enseñanza y Experimentación de Sistemas Expertos Basados en Reglas (*Forward Chaining*).
             </p>
             <p className="text-xs text-stone-500 mt-4">
-              Sprint 1 — Proyecto de Taller de Grado I
+              Plataforma Didáctica de Inteligencia Artificial Simbólica
             </p>
           </div>
 

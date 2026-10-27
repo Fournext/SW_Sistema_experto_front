@@ -66,7 +66,16 @@ export const CondicionForm: React.FC<CondicionFormProps> = ({
     return 'TEXTO';
   }, [selectedReferencia, variables, hechos]);
 
-  // Si cambia a booleano, asegurar operador '==' o '!=' y valor 'true' o 'false'
+  const opcionesDisponibles = useMemo(() => {
+    if (!selectedReferencia) return [];
+    const v = variables?.find((item) => item.nombre === selectedReferencia);
+    if (v && (v as any).opciones) return (v as any).opciones as string[];
+    const h = hechos?.find((item) => item.nombre === selectedReferencia);
+    if (h && h.opciones) return h.opciones;
+    return [];
+  }, [selectedReferencia, variables, hechos]);
+
+  // Si cambia a booleano u opcion, ajustar operador y valor
   useEffect(() => {
     if (tipoDato === 'BOOLEANO') {
       if (operadorActual !== '==' && operadorActual !== '!=') {
@@ -75,8 +84,15 @@ export const CondicionForm: React.FC<CondicionFormProps> = ({
       if (valorActual !== 'true' && valorActual !== 'false') {
         setValue('valor_esperado', 'true', { shouldValidate: true });
       }
+    } else if (tipoDato === 'OPCION') {
+      if (operadorActual !== '==' && operadorActual !== '!=') {
+        setValue('operador', '==');
+      }
+      if (opcionesDisponibles.length > 0 && !opcionesDisponibles.includes(valorActual)) {
+        setValue('valor_esperado', opcionesDisponibles[0], { shouldValidate: true });
+      }
     }
-  }, [tipoDato, operadorActual, valorActual, setValue]);
+  }, [tipoDato, operadorActual, valorActual, opcionesDisponibles, setValue]);
 
   const onFormSubmit = (data: CondicionFormData) => {
     const val = data.valor_esperado.trim();
@@ -85,6 +101,13 @@ export const CondicionForm: React.FC<CondicionFormProps> = ({
       if (lower !== 'true' && lower !== 'false') {
         setError('valor_esperado', {
           message: 'El valor esperado debe ser "true" o "false" para una condición booleana',
+        });
+        return;
+      }
+    } else if (tipoDato === 'OPCION') {
+      if (opcionesDisponibles.length > 0 && !opcionesDisponibles.includes(val)) {
+        setError('valor_esperado', {
+          message: `El valor esperado debe ser una de las opciones configuradas: ${opcionesDisponibles.join(', ')}`,
         });
         return;
       }
@@ -111,7 +134,7 @@ export const CondicionForm: React.FC<CondicionFormProps> = ({
   };
 
   const opcionesOperadores = useMemo(() => {
-    if (tipoDato === 'BOOLEANO') {
+    if (tipoDato === 'BOOLEANO' || tipoDato === 'OPCION') {
       return [
         { value: '==', label: '== (Igual a)' },
         { value: '!=', label: '!= (Diferente de)' },
@@ -207,6 +230,30 @@ export const CondicionForm: React.FC<CondicionFormProps> = ({
               </div>
               <input type="hidden" {...register('valor_esperado')} />
             </div>
+          ) : tipoDato === 'OPCION' ? (
+            opcionesDisponibles.length > 0 ? (
+              <Select
+                options={[
+                  { value: '', label: '-- Selecciona una opción esperada --' },
+                  ...opcionesDisponibles.map((opc) => ({ value: opc, label: opc })),
+                ]}
+                error={errors.valor_esperado?.message}
+                required
+                {...register('valor_esperado')}
+              />
+            ) : (
+              <div className="space-y-1">
+                <Input
+                  placeholder="Escribe la opción esperada..."
+                  error={errors.valor_esperado?.message}
+                  required
+                  {...register('valor_esperado')}
+                />
+                <p className="text-[11px] text-amber-700 italic">
+                  Este hecho/variable no tiene opciones predefinidas. Puedes ingresar el valor manualmente.
+                </p>
+              </div>
+            )
           ) : (
             <Input
               type={tipoDato === 'ENTERO' || tipoDato === 'DECIMAL' ? 'number' : 'text'}

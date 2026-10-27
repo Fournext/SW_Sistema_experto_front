@@ -109,6 +109,10 @@ export const PanelPropiedadesCondicion: React.FC<PanelPropiedadesCondicionProps>
       ).toUpperCase()
     : 'TEXTO';
 
+  const opcionesDisponibles: string[] = elementoSeleccionado
+    ? (elementoSeleccionado as any).opciones || []
+    : [];
+
   // Manejar cambio de elemento seleccionado
   const handleElementoChange = (nuevoId: string) => {
     setElementoId(nuevoId);
@@ -127,9 +131,17 @@ export const PanelPropiedadesCondicion: React.FC<PanelPropiedadesCondicionProps>
         ).toUpperCase()
       : 'TEXTO';
 
+    const opcs: string[] = elem ? (elem as any).opciones || [] : [];
+
     if (nuevoTipoDato === 'BOOLEANO') {
       const lower = valorEsperado.toLowerCase().trim();
       setValorEsperado(lower === 'false' ? 'false' : 'true');
+      if (operador !== '==' && operador !== '!=') setOperador('==');
+    } else if (nuevoTipoDato === 'OPCION') {
+      if (operador !== '==' && operador !== '!=') setOperador('==');
+      if (opcs.length > 0 && !opcs.includes(valorEsperado)) {
+        setValorEsperado(opcs[0]);
+      }
     } else if (nuevoTipoDato === 'ENTERO') {
       if (!/^-?\d+$/.test(valorEsperado.trim())) {
         setValorEsperado('');
@@ -157,7 +169,7 @@ export const PanelPropiedadesCondicion: React.FC<PanelPropiedadesCondicionProps>
 
     const valTrim = valorEsperado.trim();
     if (!valTrim) {
-      setErrorValidacion('Debes ingresar un valor esperado.');
+      setErrorValidacion('Debes ingresar o seleccionar un valor esperado.');
       return;
     }
 
@@ -166,6 +178,11 @@ export const PanelPropiedadesCondicion: React.FC<PanelPropiedadesCondicionProps>
       const lower = valTrim.toLowerCase();
       if (lower !== 'true' && lower !== 'false') {
         setErrorValidacion('El valor debe ser "true" o "false" para una condición booleana.');
+        return;
+      }
+    } else if (tipoDato === 'OPCION') {
+      if (opcionesDisponibles.length > 0 && !opcionesDisponibles.includes(valTrim)) {
+        setErrorValidacion(`El valor esperado debe ser una de las opciones configuradas: ${opcionesDisponibles.join(', ')}`);
         return;
       }
     } else if (tipoDato === 'ENTERO') {
@@ -344,7 +361,7 @@ export const PanelPropiedadesCondicion: React.FC<PanelPropiedadesCondicionProps>
         <Select
           label="Operador de Comparación"
           options={
-            tipoDato === 'BOOLEANO'
+            tipoDato === 'BOOLEANO' || tipoDato === 'OPCION'
               ? [
                   { value: '==', label: '== (Igual a)' },
                   { value: '!=', label: '!= (Diferente de)' },
@@ -401,6 +418,37 @@ export const PanelPropiedadesCondicion: React.FC<PanelPropiedadesCondicionProps>
               false (Falso)
             </button>
           </div>
+        ) : tipoDato === 'OPCION' ? (
+          opcionesDisponibles.length > 0 ? (
+            <Select
+              options={[
+                { value: '', label: '-- Selecciona una opción esperada --' },
+                ...opcionesDisponibles.map((opc) => ({ value: opc, label: opc })),
+              ]}
+              value={valorEsperado}
+              onChange={(e) => {
+                setValorEsperado(e.target.value);
+                setErrorValidacion(null);
+              }}
+              required
+            />
+          ) : (
+            <div className="space-y-1">
+              <Input
+                type="text"
+                value={valorEsperado}
+                onChange={(e) => {
+                  setValorEsperado(e.target.value);
+                  setErrorValidacion(null);
+                }}
+                placeholder='Escribe la opción esperada...'
+                required
+              />
+              <p className="text-[11px] text-amber-700 italic">
+                Este hecho o variable no tiene opciones registradas aún. Escribe el valor o agrégalas desde el panel de Hechos.
+              </p>
+            </div>
+          )
         ) : tipoDato === 'ENTERO' ? (
           <Input
             type="number"
@@ -446,6 +494,7 @@ export const PanelPropiedadesCondicion: React.FC<PanelPropiedadesCondicionProps>
 
         <p className="text-[11px] text-slate-500 mt-1">
           {tipoDato === 'BOOLEANO' && 'Selecciona si la condición evaluará Verdadero o Falso.'}
+          {tipoDato === 'OPCION' && 'Selecciona el valor de la opción que debe cumplirse en la premisa.'}
           {tipoDato === 'ENTERO' && 'Solo se permiten números enteros sin decimales.'}
           {tipoDato === 'DECIMAL' && 'Ingresa un valor numérico decimal o entero.'}
           {tipoDato === 'TEXTO' && 'Ingresa el texto a comparar.'}

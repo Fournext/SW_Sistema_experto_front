@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'indigo' | 'purple' | 'teal';
+export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'indigo' | 'purple' | 'teal' | 'emerald';
 export type BadgeSize = 'sm' | 'md';
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
@@ -12,6 +12,12 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const variantStyles: Record<BadgeVariant, { bg: string; text: string; dot: string; border: string }> = {
   success: {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-800',
+    dot: 'bg-emerald-500',
+    border: 'border-emerald-200/80',
+  },
+  emerald: {
     bg: 'bg-emerald-50',
     text: 'text-emerald-800',
     dot: 'bg-emerald-500',
@@ -74,7 +80,7 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
   ...props
 }) => {
-  const style = variantStyles[variant];
+  const style = variantStyles[variant] || variantStyles.neutral;
 
   return (
     <span

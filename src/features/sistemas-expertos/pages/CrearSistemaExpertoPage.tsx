@@ -39,8 +39,8 @@ export const CrearSistemaExpertoPage: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-          <PlusCircle className="w-6 h-6" />
+        <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-800 border border-teal-200 flex items-center justify-center font-bold">
+          <PlusCircle className="w-5 h-5" />
         </div>
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Nuevo Sistema Experto</h2>

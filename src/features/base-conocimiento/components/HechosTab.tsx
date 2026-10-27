@@ -1,3 +1,5 @@
+import { Permisos, usePuede } from '@/config/permisos';
+import { Permiso } from '@/shared/components/Permiso';
 import React, { useState } from 'react';
 import { Plus, Edit2, Trash2, FileText } from 'lucide-react';
 import { useHechos, useHechosMutations } from '../hooks/useBaseConocimiento';
@@ -25,8 +27,12 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [hechoAEditar, setHechoAEditar] = useState<Hecho | null>(null);
   const confirmDialog = useConfirmDialog();
+  const puedeCrear = usePuede(Permisos.HECHOS_CREAR);
+  const puedeEditar = usePuede(Permisos.HECHOS_EDITAR);
+  const puedeEliminar = usePuede(Permisos.HECHOS_ELIMINAR);
 
   const handleCrearOActualizar = async (data: HechoFormData) => {
+    if (hechoAEditar ? !puedeEditar : !puedeCrear) return;
     if (hechoAEditar) {
       await actualizar.mutateAsync({
         id: hechoAEditar.id,
@@ -37,6 +43,7 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
         nombre: data.nombre,
         valor: data.valor,
         tipo_dato: data.tipo_dato,
+        opciones: data.opciones,
         es_inicial: data.es_inicial,
       });
     }
@@ -45,6 +52,7 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
   };
 
   const handleEliminar = (hecho: Hecho) => {
+    if (!puedeEliminar) return;
     confirmDialog.confirm({
       title: `¿Eliminar hecho "${hecho.nombre}"?`,
       message: 'Este hecho dejará de formar parte de la base de conocimiento y de las premisas evaluadas.',
@@ -88,7 +96,7 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
           </p>
         </div>
 
-        <Button
+        <Permiso permisos={[Permisos.HECHOS_CREAR]}><Button
           variant="primary"
           size="sm"
           icon={<Plus className="w-4 h-4" />}
@@ -98,7 +106,7 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
           }}
         >
           Agregar Hecho
-        </Button>
+        </Button></Permiso>
       </div>
 
       {!hechos || hechos.length === 0 ? (
@@ -106,11 +114,11 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
           icon={<FileText className="w-8 h-8 text-emerald-700" />}
           title="No hay hechos en esta base de conocimiento"
           description="Agrega proposiciones o datos iniciales para comenzar a evaluar el razonamiento del sistema."
-          actionText="Crear primer hecho"
-          onAction={() => {
+          actionText={puedeCrear ? "Crear primer hecho" : undefined}
+          onAction={puedeCrear ? () => {
             setHechoAEditar(null);
             setModalOpen(true);
-          }}
+          } : undefined}
         />
       ) : (
         <Table>
@@ -130,12 +138,31 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
                   {hecho.nombre}
                 </TableCell>
                 <TableCell>
-                  <code className="px-2 py-0.5 bg-stone-100 text-stone-800 rounded text-xs font-mono border border-stone-200">
-                    {hecho.valor}
-                  </code>
+                  <div className="space-y-1">
+                    <code className="px-2 py-0.5 bg-stone-100 text-stone-800 rounded text-xs font-mono border border-stone-200">
+                      {hecho.valor}
+                    </code>
+                    {hecho.tipo_dato === 'OPCION' && hecho.opciones && hecho.opciones.length > 0 && (
+                      <div className="flex flex-wrap gap-1 text-[10px] text-slate-500">
+                        <span className="font-semibold text-slate-400">Opciones:</span>
+                        {hecho.opciones.map((opc) => (
+                          <span
+                            key={opc}
+                            className={`px-1.5 py-0.2 rounded border ${
+                              opc === hecho.valor
+                                ? 'bg-indigo-50 border-indigo-200 text-indigo-700 font-semibold'
+                                : 'bg-slate-50 border-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {opc}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="teal" size="sm">
+                  <Badge variant={hecho.tipo_dato === 'OPCION' ? 'purple' : 'teal'} size="sm">
                     {hecho.tipo_dato}
                   </Badge>
                 </TableCell>
@@ -152,7 +179,7 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <button
+                    <Permiso permisos={[Permisos.HECHOS_EDITAR]}><button
                       type="button"
                       onClick={() => {
                         setHechoAEditar(hecho);
@@ -162,15 +189,15 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
                       title="Editar hecho"
                     >
                       <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
+                    </button></Permiso>
+                    <Permiso permisos={[Permisos.HECHOS_ELIMINAR]}><button
                       type="button"
                       onClick={() => handleEliminar(hecho)}
                       className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
                       title="Eliminar hecho"
                     >
                       <Trash2 className="w-4 h-4" />
-                    </button>
+                    </button></Permiso>
                   </div>
                 </TableCell>
               </TableRow>
@@ -196,6 +223,7 @@ export const HechosTab: React.FC<HechosTabProps> = ({ baseConocimientoId }) => {
                   nombre: hechoAEditar.nombre,
                   valor: hechoAEditar.valor,
                   tipo_dato: hechoAEditar.tipo_dato,
+                  opciones: hechoAEditar.opciones || [],
                   es_inicial: hechoAEditar.es_inicial,
                 }
               : undefined
