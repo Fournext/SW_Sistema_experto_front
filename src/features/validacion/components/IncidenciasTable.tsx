@@ -78,6 +78,7 @@ export const IncidenciasTable: React.FC<IncidenciasTableProps> = ({
             <option value="SEMANTICA">Semántica</option>
             <option value="REFERENCIAL">Referencial</option>
             <option value="CICLO">Ciclo o Recursión</option>
+            <option value="LOGICO">Lógica y Consistencia</option>
           </select>
         </div>
       </div>

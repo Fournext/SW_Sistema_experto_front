@@ -1,6 +1,6 @@
 export type SeveridadIncidencia = 'ERROR' | 'ADVERTENCIA';
 
-export type TipoIncidencia = 'ESTRUCTURAL' | 'SEMANTICA' | 'REFERENCIAL' | 'CICLO';
+export type TipoIncidencia = 'ESTRUCTURAL' | 'SEMANTICA' | 'REFERENCIAL' | 'CICLO' | 'LOGICO';
 
 export interface IncidenciaValidacion {
   id: string;
