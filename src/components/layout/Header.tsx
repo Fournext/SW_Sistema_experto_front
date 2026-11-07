@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
-import { BookOpen, Menu, ShieldCheck, LogOut } from 'lucide-react';
+import { BookOpen, Menu, ShieldCheck, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Permisos, usePuede } from '../../config/permisos';
 import { useAuthStore } from '../../features/auth/authStore';
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;
+  isSidebarCollapsed?: boolean;
+  onToggleCollapseDesktop?: () => void;
   sistemaNombre?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sistemaNombre }) => {
+export const Header: React.FC<HeaderProps> = ({
+  onToggleSidebar,
+  isSidebarCollapsed = false,
+  onToggleCollapseDesktop,
+  sistemaNombre,
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -37,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sistemaNombre }
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 md:px-6 bg-white/95 backdrop-blur-xs border-b border-stone-200">
       <div className="flex items-center gap-3">
+        {/* Botón en móvil para abrir drawer */}
         <button
           type="button"
           onClick={onToggleSidebar}
@@ -45,6 +53,23 @@ export const Header: React.FC<HeaderProps> = ({ onToggleSidebar, sistemaNombre }
         >
           <Menu className="w-5 h-5" />
         </button>
+
+        {/* Botón en desktop para colapsar/expandir barra lateral */}
+        {onToggleCollapseDesktop && (
+          <button
+            type="button"
+            onClick={onToggleCollapseDesktop}
+            className="hidden lg:flex items-center justify-center p-2 -ml-2 text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-lg cursor-pointer transition-colors"
+            title={isSidebarCollapsed ? 'Mostrar barra lateral (Ctrl+B)' : 'Ocultar barra lateral (Ctrl+B)'}
+            aria-label={isSidebarCollapsed ? 'Mostrar barra lateral' : 'Ocultar barra lateral'}
+          >
+            {isSidebarCollapsed ? (
+              <PanelLeftOpen className="w-5 h-5 text-teal-800" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5 text-stone-600" />
+            )}
+          </button>
+        )}
 
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-teal-700 text-white flex items-center justify-center font-bold shadow-xs">

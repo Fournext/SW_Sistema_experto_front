@@ -51,7 +51,7 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
 
   return (
     <aside
-      className="w-[360px] bg-white border-l border-slate-200 shadow-xl flex flex-col h-full z-20 transition-all duration-200"
+      className="w-[420px] max-w-[95vw] bg-white border-l border-slate-200 shadow-xl flex flex-col h-full z-20 transition-all duration-200"
       aria-label="Panel de propiedades del nodo"
     >
       {/* Header del panel */}
@@ -79,7 +79,7 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
       </div>
 
       {/* Formulario según el tipo de nodo */}
-      <fieldset disabled={!puedeEditar} className="flex-1 overflow-y-auto p-4 disabled:opacity-70">
+      <div className={`flex-1 overflow-y-auto min-h-0 p-4 pb-8 space-y-4 ${!puedeEditar ? 'opacity-70 pointer-events-none' : ''}`}>
         {tipo === 'HECHO' && (
           <PanelPropiedadesHecho
             nodo={nodoSeleccionado}
@@ -101,6 +101,9 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
             nodo={nodoSeleccionado}
             onGuardar={handleGuardar}
             loading={guardando}
+            variables={variables}
+            hechos={hechos}
+            reglas={reglas}
           />
         )}
 
@@ -125,7 +128,7 @@ export const PanelPropiedades: React.FC<PanelPropiedadesProps> = ({
             reglas={reglas}
           />
         )}
-      </fieldset>
+      </div>
 
       {/* Footer con acción de eliminar nodo */}
       <div className="p-4 border-t border-slate-100 bg-slate-50/70">

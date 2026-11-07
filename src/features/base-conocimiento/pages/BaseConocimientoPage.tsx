@@ -34,8 +34,8 @@ export const BaseConocimientoPage: React.FC = () => {
     refetch: refetchBase,
   } = useBaseConocimiento(sistemaId);
 
-  // El ID para consultar hechos/variables/reglas es baseConocimiento.id o en su defecto sistemaId
-  const effectiveBaseId = baseConocimiento?.id || sistemaId;
+  // El ID real de la base de conocimiento para consultar hechos/variables/reglas
+  const effectiveBaseId = baseConocimiento?.id;
 
   const { data: hechos } = useHechos(puedeHechos ? effectiveBaseId : undefined);
   const { data: variables } = useVariables(puedeVariables ? effectiveBaseId : undefined);

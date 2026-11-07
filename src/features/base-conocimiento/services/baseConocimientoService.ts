@@ -10,6 +10,7 @@ import type {
   CrearHechoDTO,
   CrearVariableDTO,
   CrearReglaDTO,
+  CrearReglaCompletaDTO,
 } from '../types/types';
 
 const unwrapList = <T>(data: unknown): T[] => {
@@ -260,6 +261,28 @@ export const baseConocimientoService = {
 
   async eliminarConclusion(id: number | string): Promise<void> {
     await httpClient.delete(`/conclusiones/${id}/`);
+  },
+
+  async crearReglaCompleta(
+    baseConocimientoId: number | string,
+    datos: CrearReglaCompletaDTO
+  ): Promise<Regla> {
+    const response = await httpClient.post<Regla>(
+      `/bases-conocimiento/${baseConocimientoId}/reglas-completas/`,
+      datos
+    );
+    return response.data;
+  },
+
+  async actualizarReglaCompleta(
+    reglaId: number | string,
+    datos: CrearReglaCompletaDTO
+  ): Promise<Regla> {
+    const response = await httpClient.put<Regla>(
+      `/reglas/${reglaId}/completa/`,
+      datos
+    );
+    return response.data;
   },
 };
 

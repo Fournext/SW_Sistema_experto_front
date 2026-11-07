@@ -6,6 +6,8 @@ export interface GrafoResult {
   edges: FlowEdge[];
 }
 
+export type ModoVistaLienzo = 'SIMPLIFICADA' | 'COMPLETA';
+
 const safeStr = (val: unknown, fallback = ''): string => {
   if (val === undefined || val === null) return fallback;
   return String(val).trim();
@@ -14,22 +16,21 @@ const safeStr = (val: unknown, fallback = ''): string => {
 /**
  * Transforma los hechos, variables y reglas de la Base de Conocimiento en un grafo pedagógico:
  *
- * Flujo Jerárquico Principal:
- *   Nivel 1 (Y = 60):  REGLA (Elemento principal que gobierna la inferencia)
+ * Modo 'SIMPLIFICADA' (por defecto en el editor):
+ *   Muestra las Reglas como Tarjetas Todo-en-Uno (IF-THEN dentro) y los Hechos independientes.
+ *   Conexión directa entre reglas: R1 -[ENCADENA]-> R2. Máxima limpieza sin nodos satélites.
+ *
+ * Modo 'COMPLETA' (vista desglosada):
+ *   Desglosa cada regla jerárquicamente:
+ *   Nivel 1 (Y = 60):  REGLA
  *            |
  *           [IF]
  *            v
- *   Nivel 2 (Y = 250): CONDICIÓN (Premisas evaluadas por la regla)
+ *   Nivel 2 (Y = 250): CONDICIÓN
  *            |
  *          [THEN]
  *            v
- *   Nivel 3 (Y = 440): CONCLUSIÓN (Deducciones resultantes de la regla)
- *
- * Elementos de Soporte:
- *   Columna Izquierda (X = 60): Hechos Iniciales y Variables del Dominio
- *   -> Hecho / Variable  -[EVALÚA]-> Condición
- *   -> Conclusión        -[ACTUALIZA/ASIGNA]-> Hecho / Variable
- *   -> Conclusión (R1)   -[ENCADENA]-> Condición (R2)
+ *   Nivel 3 (Y = 440): CONCLUSIÓN
  */
 export const construirGrafoBaseConocimiento = (
   hechos: Hecho[] = [],
@@ -37,7 +38,8 @@ export const construirGrafoBaseConocimiento = (
   reglas: Regla[] = [],
   posicionesGuardadas?: Record<string, { x: number; y: number }>,
   puntosControlAristas?: Record<string, { x: number; y: number }>,
-  nodosVisuales?: NodoVisualBackend[]
+  nodosVisuales?: NodoVisualBackend[],
+  vistaModo: ModoVistaLienzo = 'COMPLETA'
 ): GrafoResult => {
   const nodes: FlowNode[] = [];
   const edges: FlowEdge[] = [];
@@ -82,6 +84,268 @@ export const construirGrafoBaseConocimiento = (
 
   const hechoNombreMap = new Map<string, string>(); // nombreLower -> nodeId
   const variableNombreMap = new Map<string, string>(); // nombreLower -> nodeId
+
+  for (const hecho of listaHechos) {
+    if (!hecho) continue;
+    const rawHechoId = hecho.id !== undefined && hecho.id !== null ? String(hecho.id) : '';
+    const safeHechoId = rawHechoId || `h_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const nodeId = `hecho_${safeHechoId}`;
+    const nombreHecho = safeStr(hecho.nombre, `Hecho_${safeHechoId}`);
+    const key = nombreHecho.toLowerCase();
+    if (rawHechoId) hechoIdMap.set(rawHechoId, { nodeId, nombre: nombreHecho });
+    if (key) hechoNombreMap.set(key, nodeId);
+  }
+
+  for (const variable of listaVariables) {
+    if (!variable) continue;
+    const rawVarId = variable.id !== undefined && variable.id !== null ? String(variable.id) : '';
+    const safeVarId = rawVarId || `v_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const nodeId = `variable_${safeVarId}`;
+    const nombreVar = safeStr(variable.nombre, `Var_${safeVarId}`);
+    const key = nombreVar.toLowerCase();
+    if (rawVarId) variableIdMap.set(rawVarId, { nodeId, nombre: nombreVar });
+    if (key) variableNombreMap.set(key, nodeId);
+  }
+
+  // ==========================================
+  // VISTA SIMPLIFICADA (SOLO REGLAS Y HECHOS)
+  // ==========================================
+  if (vistaModo === 'SIMPLIFICADA') {
+    // 1. Reglas en cuadrícula ordenada sin superposición
+    const reglasOrdenadas = [...listaReglas].sort((a, b) => {
+      const pA = a.prioridad ?? 0;
+      const pB = b.prioridad ?? 0;
+      if (pB !== pA) return pB - pA;
+      return String(a.nombre || '').localeCompare(String(b.nombre || ''));
+    });
+
+    const reglaOrdenMap = new Map<string, number>();
+    reglasOrdenadas.forEach((r, idx) => {
+      if (r.id !== undefined && r.id !== null) {
+        reglaOrdenMap.set(String(r.id), idx + 1);
+      }
+    });
+
+    const reglaConclusionesVar = new Map<string, Set<string>>();
+    const reglaCondicionesVar = new Map<string, Set<string>>();
+
+    reglasOrdenadas.forEach((regla, idx) => {
+      const reglaId = regla.id !== undefined && regla.id !== null ? String(regla.id) : `r_${idx}`;
+      const reglaNodeId = `regla_${reglaId}`;
+      const visual = regla.id !== undefined && regla.id !== null ? visualMap.get(String(regla.id)) : undefined;
+
+      const col = idx % 3;
+      const row = Math.floor(idx / 3);
+      const defaultGridX = 60 + col * 360;
+      const defaultGridY = 80 + row * 340;
+
+      const hasValidVisual =
+        visual &&
+        visual.posicion_x !== undefined &&
+        visual.posicion_y !== undefined &&
+        !(Number(visual.posicion_x) === 280 && Number(visual.posicion_y) === 100 && idx > 0);
+
+      const fallbackPos = hasValidVisual
+        ? { x: Number(visual!.posicion_x), y: Number(visual!.posicion_y) }
+        : { x: defaultGridX, y: defaultGridY };
+
+      const reglaPos = posicionesGuardadas?.[reglaNodeId] || fallbackPos;
+      const reglaNombre = safeStr(regla.nombre, `Regla_${reglaId}`);
+
+      const condicionesRaw = Array.isArray(regla.condiciones) ? regla.condiciones : [];
+      const conclusionesRaw = Array.isArray(regla.conclusiones) ? regla.conclusiones : [];
+
+      const condVars = new Set<string>();
+      const condicionesLista = condicionesRaw.map((c) => {
+        let sujeto = c.variable_nombre || c.referencia || '';
+        if (!sujeto) {
+          if (c.variable_id && variableIdMap.has(String(c.variable_id))) {
+            sujeto = variableIdMap.get(String(c.variable_id))!.nombre;
+          } else if (c.hecho_id && hechoIdMap.has(String(c.hecho_id))) {
+            sujeto = hechoIdMap.get(String(c.hecho_id))!.nombre;
+          }
+        }
+        const sujetoFinal = sujeto || 'Dato';
+        condVars.add(sujetoFinal.toLowerCase());
+        return {
+          sujeto: sujetoFinal,
+          operador: safeStr(c.operador, '='),
+          valor: safeStr(c.valor_esperado, ''),
+        };
+      });
+      reglaCondicionesVar.set(reglaId, condVars);
+
+      const conclVars = new Set<string>();
+      const conclusionesLista = conclusionesRaw.map((c) => {
+        let destino = c.variable_nombre || c.destino || '';
+        if (!destino) {
+          if (c.variable_resultante_id && variableIdMap.has(String(c.variable_resultante_id))) {
+            destino = variableIdMap.get(String(c.variable_resultante_id))!.nombre;
+          } else if (c.hecho_resultante_id && hechoIdMap.has(String(c.hecho_resultante_id))) {
+            destino = hechoIdMap.get(String(c.hecho_resultante_id))!.nombre;
+          }
+        }
+        const destinoFinal = destino || 'Meta';
+        conclVars.add(destinoFinal.toLowerCase());
+        return {
+          destino: destinoFinal,
+          valor: safeStr(c.valor_resultante, ''),
+        };
+      });
+      reglaConclusionesVar.set(reglaId, conclVars);
+
+      nodes.push({
+        id: reglaNodeId,
+        type: 'REGLA',
+        position: reglaPos,
+        data: {
+          id: regla.id,
+          nodoVisualId: visual?.id,
+          nombre: reglaNombre,
+          descripcion: safeStr(regla.descripcion),
+          prioridad: regla.prioridad ?? 10,
+          ordenNumero: regla.id !== undefined && regla.id !== null ? reglaOrdenMap.get(String(regla.id)) : undefined,
+          factor_certeza: regla.factor_certeza ?? 1.0,
+          activa: regla.activa !== false,
+          condicionesLista,
+          conclusionesLista,
+        },
+      });
+    });
+
+    // 2. Variables independientes (mostradas si no hay reglas, o si no pertenecen a ninguna regla)
+    const todasLasVarsEnReglas = new Set<string>();
+    reglaCondicionesVar.forEach((s) => s.forEach((v) => todasLasVarsEnReglas.add(v)));
+    reglaConclusionesVar.forEach((s) => s.forEach((v) => todasLasVarsEnReglas.add(v)));
+
+    let varY = 60;
+    listaVariables.forEach((variable) => {
+      const vNombre = safeStr(variable.nombre).toLowerCase();
+      // Si hay reglas y esta variable ya forma parte de una regla, se visualiza dentro de la tarjeta
+      if (reglasOrdenadas.length > 0 && todasLasVarsEnReglas.has(vNombre)) {
+        return;
+      }
+
+      const rawVarId = variable.id !== undefined && variable.id !== null ? String(variable.id) : '';
+      const safeVarId = rawVarId || `v_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const nodeId = `variable_${safeVarId}`;
+      const visual = rawVarId ? visualMap.get(rawVarId) : undefined;
+      const fallbackPos =
+        visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
+          ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
+          : { x: 60, y: varY };
+      const pos = posicionesGuardadas?.[nodeId] || fallbackPos;
+
+      nodes.push({
+        id: nodeId,
+        type: 'VARIABLE',
+        position: pos,
+        data: {
+          id: variable.id,
+          nodoVisualId: visual?.id,
+          nombre: safeStr(variable.nombre, `Var_${safeVarId}`),
+          tipo: safeStr(variable.tipo || variable.tipo_dato, 'TEXTO'),
+          valor_por_defecto: safeStr(variable.valor_por_defecto ?? variable.valor_defecto),
+          descripcion: safeStr(variable.descripcion),
+        },
+      });
+
+      if (!posicionesGuardadas?.[nodeId]) {
+        varY += 140;
+      }
+    });
+
+    // 3. Hechos independientes en el lienzo
+    listaHechos.forEach((hecho, hIdx) => {
+      const rawHechoId = hecho.id !== undefined && hecho.id !== null ? String(hecho.id) : '';
+      const safeHechoId = rawHechoId || `h_${hIdx}`;
+      const nodeId = `hecho_${safeHechoId}`;
+      const visual = rawHechoId ? visualMap.get(rawHechoId) : undefined;
+      const rowOffset = Math.ceil(reglasOrdenadas.length / 3);
+      const fallbackPos =
+        visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
+          ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
+          : { x: 60 + (hIdx % 4) * 220, y: 80 + rowOffset * 340 + 20 };
+      const pos = posicionesGuardadas?.[nodeId] || fallbackPos;
+      const nombreHecho = safeStr(hecho.nombre, `Hecho_${safeHechoId}`);
+
+      nodes.push({
+        id: nodeId,
+        type: 'HECHO',
+        position: pos,
+        data: {
+          id: hecho.id,
+          nodoVisualId: visual?.id,
+          nombre: nombreHecho,
+          valor: safeStr(hecho.valor),
+          tipo_dato: safeStr(hecho.tipo_dato, 'TEXTO'),
+          es_inicial: Boolean(hecho.es_inicial),
+        },
+      });
+
+      // Si este hecho es evaluado por alguna regla, arista EVALÚA
+      const hechoKey = nombreHecho.toLowerCase();
+      reglasOrdenadas.forEach((regla) => {
+        const rId = String(regla.id);
+        const condsDeRegla = reglaCondicionesVar.get(rId);
+        if (condsDeRegla && condsDeRegla.has(hechoKey)) {
+          addEdgeSafe({
+            id: `e_eval_${nodeId}_regla_${rId}`,
+            source: nodeId,
+            target: `regla_${rId}`,
+            sourceHandle: 'right-out',
+            targetHandle: 'left-in',
+            label: 'EVALÚA',
+            animated: false,
+            style: { stroke: '#64748b', strokeWidth: 1.5 },
+            labelStyle: { fill: '#334155', fontWeight: 700, fontSize: 8, fontFamily: 'monospace' },
+            labelBgStyle: { fill: '#f8fafc', stroke: '#cbd5e1', strokeWidth: 1, rx: 3, ry: 3 },
+            labelBgPadding: [4, 1],
+          });
+        }
+      });
+    });
+
+    // 3. Encadenamiento directo entre Reglas (R1 -> R2 si R1 concluye variable que R2 evalúa)
+    for (const reglaA of reglasOrdenadas) {
+      const idA = String(reglaA.id);
+      const conclA = reglaConclusionesVar.get(idA);
+      if (!conclA || conclA.size === 0) continue;
+
+      for (const reglaB of reglasOrdenadas) {
+        const idB = String(reglaB.id);
+        if (idA === idB) continue;
+        const condB = reglaCondicionesVar.get(idB);
+        if (!condB || condB.size === 0) continue;
+
+        let coincide = false;
+        for (const varName of conclA) {
+          if (condB.has(varName)) {
+            coincide = true;
+            break;
+          }
+        }
+
+        if (coincide) {
+          addEdgeSafe({
+            id: `e_chain_regla_${idA}_regla_${idB}`,
+            source: `regla_${idA}`,
+            target: `regla_${idB}`,
+            sourceHandle: 'right-out',
+            targetHandle: 'left-in',
+            label: 'ENCADENA',
+            animated: true,
+            style: { stroke: '#6366f1', strokeWidth: 2, strokeDasharray: '4 4' },
+            labelStyle: { fill: '#4338ca', fontWeight: 700, fontSize: 8 },
+            labelBgStyle: { fill: '#e0e7ff', stroke: '#6366f1', strokeWidth: 1, rx: 4, ry: 4 },
+            labelBgPadding: [4, 1],
+          });
+        }
+      }
+    }
+
+    return { nodes, edges };
+  }
 
   // 1. Colocar Hechos Iniciales y Variables en la Columna Izquierda (X = 60)
   let hvY = 60;
@@ -184,13 +448,29 @@ export const construirGrafoBaseConocimiento = (
   }
 
   // 2. Calcular posicionamiento de Reglas (Nivel 1), Condiciones (Nivel 2) y Conclusiones (Nivel 3)
-  // Iniciamos a la derecha de la columna de hechos (X = 320)
-  const tieneElementosIzquierda = listaHechos.length > 0 || listaVariables.length > 0;
-  let currentX = tieneElementosIzquierda ? 320 : 60;
+  // Ordenar reglas por prioridad y nombre para determinar orden secuencial de evaluación (#1, #2...)
+  const reglasOrdenadas = [...listaReglas].sort((a, b) => {
+    const pA = a.prioridad ?? 0;
+    const pB = b.prioridad ?? 0;
+    if (pB !== pA) return pB - pA;
+    return String(a.nombre || '').localeCompare(String(b.nombre || ''));
+  });
+  const reglaOrdenMap = new Map<string, number>();
+  reglasOrdenadas.forEach((r, idx) => {
+    if (r.id !== undefined && r.id !== null) {
+      reglaOrdenMap.set(String(r.id), idx + 1);
+    }
+  });
 
+  // Iniciamos a la derecha de la columna de hechos/variables (X >= 380) para evitar cualquier solapamiento
+  const tieneElementosIzquierda = listaHechos.length > 0 || listaVariables.length > 0;
+  const minReglaX = tieneElementosIzquierda ? 380 : 60;
+  let currentX = minReglaX;
+
+  // Espaciado vertical ampliado para acomodar la altura de la tarjeta Todo-en-Uno (~250px)
   const Y_REGLA = 60;
-  const Y_CONDICIONES = 250;
-  const Y_CONCLUSIONES = 440;
+  const Y_CONDICIONES = 380;
+  const Y_CONCLUSIONES = 580;
 
   const reglaLayouts: {
     regla: Regla;
@@ -207,19 +487,19 @@ export const construirGrafoBaseConocimiento = (
     const cantCond = condiciones.length;
     const cantConcl = conclusiones.length;
     const maxItems = Math.max(cantCond, cantConcl, 1);
-    const anchoBloque = Math.max(maxItems * 240, 260);
+    const anchoBloque = Math.max(maxItems * 250, 270);
 
     const condXList: number[] = [];
     for (let i = 0; i < cantCond; i++) {
-      condXList.push(currentX + i * 240);
+      condXList.push(currentX + i * 250);
     }
 
     const conclXList: number[] = [];
     for (let j = 0; j < cantConcl; j++) {
-      conclXList.push(currentX + j * 240);
+      conclXList.push(currentX + j * 250);
     }
 
-    const reglaX = currentX + (anchoBloque - 220) / 2;
+    const reglaX = currentX + (anchoBloque - 240) / 2;
 
     reglaLayouts.push({
       regla,
@@ -228,7 +508,7 @@ export const construirGrafoBaseConocimiento = (
       conclXList,
     });
 
-    currentX += anchoBloque + 80;
+    currentX += anchoBloque + 100;
   }
 
   // 3. Generar Nodos y Relaciones según el modelo pedagógico:
@@ -254,14 +534,57 @@ export const construirGrafoBaseConocimiento = (
     const reglaId = regla.id !== undefined && regla.id !== null ? String(regla.id) : `r_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const reglaNodeId = `regla_${reglaId}`;
     const visual = regla.id !== undefined && regla.id !== null ? visualMap.get(String(regla.id)) : undefined;
-    const fallbackPos =
-      visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
-        ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
-        : { x: reglaX, y: Y_REGLA };
-    const reglaPos = posicionesGuardadas?.[reglaNodeId] || fallbackPos;
+
+    // En modo COMPLETA, la posición jerárquica 'reglaX' sitúa cada regla centrada directamente
+    // sobre su correspondiente columna de condiciones y conclusiones. No debemos usar coordenadas
+    // de cuadrícula de visualMap porque provienen de otro modo y provocarían solapamiento entre reglas.
+    const fallbackPos = { x: reglaX, y: Y_REGLA };
+
+    let reglaPos = fallbackPos;
+    if (posicionesGuardadas?.[reglaNodeId]) {
+      const p = posicionesGuardadas[reglaNodeId];
+      if (!tieneElementosIzquierda || p.x >= minReglaX - 40) {
+        reglaPos = p;
+      }
+    }
     const reglaNombre = safeStr(regla.nombre, `Regla_${reglaId}`);
 
-    // Nivel 1: NODO REGLA (Principal)
+    // Extraer lista resumida de premisas (IF) y conclusiones (THEN) para la tarjeta Todo-en-Uno
+    const condicionesRaw = Array.isArray(regla.condiciones) ? regla.condiciones : [];
+    const conclusionesRaw = Array.isArray(regla.conclusiones) ? regla.conclusiones : [];
+
+    const condicionesLista = condicionesRaw.map((c) => {
+      let sujeto = c.variable_nombre || c.referencia || '';
+      if (!sujeto) {
+        if (c.variable_id && variableIdMap.has(String(c.variable_id))) {
+          sujeto = variableIdMap.get(String(c.variable_id))!.nombre;
+        } else if (c.hecho_id && hechoIdMap.has(String(c.hecho_id))) {
+          sujeto = hechoIdMap.get(String(c.hecho_id))!.nombre;
+        }
+      }
+      return {
+        sujeto: sujeto || 'Dato',
+        operador: safeStr(c.operador, '='),
+        valor: safeStr(c.valor_esperado, ''),
+      };
+    });
+
+    const conclusionesLista = conclusionesRaw.map((c) => {
+      let destino = c.variable_nombre || c.destino || '';
+      if (!destino) {
+        if (c.variable_resultante_id && variableIdMap.has(String(c.variable_resultante_id))) {
+          destino = variableIdMap.get(String(c.variable_resultante_id))!.nombre;
+        } else if (c.hecho_resultante_id && hechoIdMap.has(String(c.hecho_resultante_id))) {
+          destino = hechoIdMap.get(String(c.hecho_resultante_id))!.nombre;
+        }
+      }
+      return {
+        destino: destino || 'Meta',
+        valor: safeStr(c.valor_resultante, ''),
+      };
+    });
+
+    // Nivel 1: NODO REGLA (Principal - Tarjeta Todo-en-Uno)
     nodes.push({
       id: reglaNodeId,
       type: 'REGLA',
@@ -272,8 +595,11 @@ export const construirGrafoBaseConocimiento = (
         nombre: reglaNombre,
         descripcion: safeStr(regla.descripcion),
         prioridad: regla.prioridad ?? 10,
+        ordenNumero: regla.id !== undefined && regla.id !== null ? reglaOrdenMap.get(String(regla.id)) : undefined,
         factor_certeza: regla.factor_certeza ?? 1.0,
         activa: regla.activa !== false,
+        condicionesLista,
+        conclusionesLista,
       },
     });
 
@@ -290,12 +616,16 @@ export const construirGrafoBaseConocimiento = (
       condNodeIdsDeEstaRegla.push(condNodeId);
 
       const visual = cond.id !== undefined && cond.id !== null ? visualMap.get(String(cond.id)) : undefined;
-      const defaultX = condXList[i] ?? reglaX + i * 240;
-      const fallbackPos =
-        visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
-          ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
-          : { x: defaultX, y: Y_CONDICIONES };
-      const condPos = posicionesGuardadas?.[condNodeId] || fallbackPos;
+      const defaultX = condXList[i] ?? reglaX + i * 250;
+      const fallbackPos = { x: defaultX, y: Y_CONDICIONES };
+
+      let condPos = fallbackPos;
+      if (posicionesGuardadas?.[condNodeId]) {
+        const p = posicionesGuardadas[condNodeId];
+        if ((!tieneElementosIzquierda || p.x >= minReglaX - 50) && p.y >= Y_CONDICIONES - 50) {
+          condPos = p;
+        }
+      }
 
       const condRaw = cond as unknown as Record<string, unknown>;
 
@@ -386,10 +716,10 @@ export const construirGrafoBaseConocimiento = (
           reglaId: String(reglaId),
           condId: cond.id !== undefined && cond.id !== null ? String(cond.id) : undefined,
         },
-        style: { stroke: '#f59e0b', strokeWidth: 2 },
-        labelStyle: { fill: '#78350f', fontWeight: 700, fontSize: 9 },
-        labelBgStyle: { fill: '#fef3c7', stroke: '#f59e0b', strokeWidth: 1, rx: 4, ry: 4 },
-        labelBgPadding: [5, 1],
+        style: { stroke: '#059669', strokeWidth: 1.5 },
+        labelStyle: { fill: '#065f46', fontWeight: 700, fontSize: 8, fontFamily: 'monospace' },
+        labelBgStyle: { fill: '#f0fdf4', stroke: '#86efac', strokeWidth: 1, rx: 3, ry: 3 },
+        labelBgPadding: [4, 1],
       });
 
       // Relación Hecho/Variable -> Condición (EVALÚA)
@@ -401,21 +731,22 @@ export const construirGrafoBaseConocimiento = (
           sourceHandle: 'right-out',
           targetHandle: 'left-in',
           label: 'EVALÚA',
-          animated: true,
+          animated: false,
           data: {
             tipoRelacion: 'EVALUA',
             condId: cond.id !== undefined && cond.id !== null ? String(cond.id) : undefined,
             hechoId: hechoRefId ? String(hechoRefId) : undefined,
             variableId: varRefId ? String(varRefId) : undefined,
+            esHecho,
           },
-          style: { stroke: esHecho ? '#10b981' : '#0284c7', strokeWidth: 2 },
-          labelStyle: { fill: esHecho ? '#064e3b' : '#075985', fontWeight: 700, fontSize: 8 },
+          style: { stroke: '#64748b', strokeWidth: 1.5 },
+          labelStyle: { fill: '#334155', fontWeight: 700, fontSize: 8, fontFamily: 'monospace' },
           labelBgStyle: {
-            fill: esHecho ? '#d1fae5' : '#e0f2fe',
-            stroke: esHecho ? '#10b981' : '#0284c7',
+            fill: '#f8fafc',
+            stroke: '#cbd5e1',
             strokeWidth: 1,
-            rx: 4,
-            ry: 4,
+            rx: 3,
+            ry: 3,
           },
           labelBgPadding: [4, 1],
         });
@@ -432,12 +763,16 @@ export const construirGrafoBaseConocimiento = (
       const conclId = concl.id !== undefined && concl.id !== null ? String(concl.id) : `${reglaId}_cl${j + 1}`;
       const conclNodeId = `concl_${reglaId}_${conclId}`;
       const visual = concl.id !== undefined && concl.id !== null ? visualMap.get(String(concl.id)) : undefined;
-      const defaultX = conclXList[j] ?? reglaX + j * 240;
-      const fallbackPos =
-        visual && visual.posicion_x !== undefined && visual.posicion_y !== undefined
-          ? { x: Number(visual.posicion_x), y: Number(visual.posicion_y) }
-          : { x: defaultX, y: Y_CONCLUSIONES };
-      const conclPos = posicionesGuardadas?.[conclNodeId] || fallbackPos;
+      const defaultX = conclXList[j] ?? reglaX + j * 250;
+      const fallbackPos = { x: defaultX, y: Y_CONCLUSIONES };
+
+      let conclPos = fallbackPos;
+      if (posicionesGuardadas?.[conclNodeId]) {
+        const p = posicionesGuardadas[conclNodeId];
+        if ((!tieneElementosIzquierda || p.x >= minReglaX - 50) && p.y >= Y_CONCLUSIONES - 50) {
+          conclPos = p;
+        }
+      }
 
       const conclRaw = concl as unknown as Record<string, unknown>;
 
@@ -526,10 +861,10 @@ export const construirGrafoBaseConocimiento = (
               reglaId: String(reglaId),
               conclusionId: concl.id !== undefined && concl.id !== null ? String(concl.id) : undefined,
             },
-            style: { stroke: '#a855f7', strokeWidth: 2 },
-            labelStyle: { fill: '#581c87', fontWeight: 700, fontSize: 9 },
-            labelBgStyle: { fill: '#f3e8ff', stroke: '#a855f7', strokeWidth: 1, rx: 4, ry: 4 },
-            labelBgPadding: [5, 1],
+            style: { stroke: '#4f46e5', strokeWidth: 1.5 },
+            labelStyle: { fill: '#3730a3', fontWeight: 700, fontSize: 8, fontFamily: 'monospace' },
+            labelBgStyle: { fill: '#eef2ff', stroke: '#a5b4fc', strokeWidth: 1, rx: 3, ry: 3 },
+            labelBgPadding: [4, 1],
           });
         }
       } else {
@@ -547,10 +882,10 @@ export const construirGrafoBaseConocimiento = (
             reglaId: String(reglaId),
             conclusionId: concl.id !== undefined && concl.id !== null ? String(concl.id) : undefined,
           },
-          style: { stroke: '#a855f7', strokeWidth: 2 },
-          labelStyle: { fill: '#581c87', fontWeight: 700, fontSize: 9 },
-          labelBgStyle: { fill: '#f3e8ff', stroke: '#a855f7', strokeWidth: 1, rx: 4, ry: 4 },
-          labelBgPadding: [5, 1],
+          style: { stroke: '#4f46e5', strokeWidth: 1.5 },
+          labelStyle: { fill: '#3730a3', fontWeight: 700, fontSize: 8, fontFamily: 'monospace' },
+          labelBgStyle: { fill: '#eef2ff', stroke: '#a5b4fc', strokeWidth: 1, rx: 3, ry: 3 },
+          labelBgPadding: [4, 1],
         });
       }
 
@@ -563,21 +898,21 @@ export const construirGrafoBaseConocimiento = (
           sourceHandle: 'left-out',
           targetHandle: 'right-in',
           label: esDestinoHecho ? 'ACTUALIZA' : 'ASIGNA',
-          animated: true,
+          animated: false,
           data: {
             tipoRelacion: esDestinoHecho ? 'ACTUALIZA' : 'ASIGNA',
             conclusionId: concl.id !== undefined && concl.id !== null ? String(concl.id) : undefined,
             hechoId: hechoDestId ? String(hechoDestId) : undefined,
             variableId: varDestId ? String(varDestId) : undefined,
           },
-          style: { stroke: esDestinoHecho ? '#059669' : '#ec4899', strokeWidth: 2 },
-          labelStyle: { fill: esDestinoHecho ? '#065f46' : '#9d174d', fontWeight: 700, fontSize: 8 },
+          style: { stroke: '#475569', strokeWidth: 1.5, strokeDasharray: '2 2' },
+          labelStyle: { fill: '#1e293b', fontWeight: 700, fontSize: 8, fontFamily: 'monospace' },
           labelBgStyle: {
-            fill: esDestinoHecho ? '#ecfdf5' : '#fce7f3',
-            stroke: esDestinoHecho ? '#059669' : '#ec4899',
+            fill: '#f1f5f9',
+            stroke: '#cbd5e1',
             strokeWidth: 1,
-            rx: 4,
-            ry: 4,
+            rx: 3,
+            ry: 3,
           },
           labelBgPadding: [4, 1],
         });

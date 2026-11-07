@@ -36,12 +36,18 @@ import nodeTypes from '../nodes/nodeTypes';
 import DraggableEdge from '../edges/DraggableEdge';
 import EditorToolbar from '../components/EditorToolbar';
 import PanelPropiedades from '../components/PanelPropiedades';
+import CrearReglaRapidaModal from '../components/CrearReglaRapidaModal';
+import EditorPseudocodigoModal from '../components/EditorPseudocodigoModal';
+import PanelOrdenReglas from '../components/PanelOrdenReglas';
+import PanelWorkflowInferencia, { type PasoWorkflow, type ContradiccionPaso } from '../components/PanelWorkflowInferencia';
+import { BarraVectorHechos, type HechoVectorItem } from '@/features/inferencia/components/BarraVectorHechos';
+import { inferenciaService } from '@/features/inferencia/services/inferenciaService';
 import Spinner from '@/components/ui/Spinner';
 import ErrorMessage from '@/components/feedback/ErrorMessage';
 import Button from '@/components/ui/Button';
-import { construirGrafoBaseConocimiento } from '../utils/grafoBaseConocimiento';
+import { construirGrafoBaseConocimiento, type ModoVistaLienzo } from '../utils/grafoBaseConocimiento';
 import type { TipoNodo, FlowNode, FlowEdge, NodoDatosGenerales } from '../types/types';
-import type { TipoDato } from '@/features/base-conocimiento/types/types';
+import type { TipoDato, CondicionItemInput, ConclusionItemInput } from '@/features/base-conocimiento/types/types';
 
 // Tipos de aristas personalizados para permitir mover y desviar relaciones con el mouse
 const edgeTypes = {
@@ -138,6 +144,58 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
   const [sincronizando, setSincronizando] = useState(false);
   const yaInicializadoRef = useRef(false);
 
+  // Modo del editor: Diseño vs Simulación Workflow FWC
+  const [modoEditor, setModoEditor] = useState<'DISENO' | 'SIMULACION'>('DISENO');
+
+  // Modo de visualización del lienzo: Simplificada (Solo Reglas y Hechos) vs Completa (Desglosada)
+  const [vistaModo, setVistaModo] = useState<ModoVistaLienzo>('SIMPLIFICADA');
+
+  const handleCambiarVistaModo = (nuevoModo: ModoVistaLienzo) => {
+    setVistaModo(nuevoModo);
+    setTimeout(() => fitViewRef.current({ padding: 0.2 }), 250);
+  };
+
+  // Cálculo semiautomático del siguiente correlativo de regla (R1, R2, ...)
+  const siguienteNumeroRegla = useMemo(() => {
+    if (!reglas || reglas.length === 0) return 1;
+    const numeros = reglas
+      .map((r) => {
+        const match = r.nombre?.match(/^R(\d+)$/i);
+        return match ? parseInt(match[1], 10) : null;
+      })
+      .filter((n): n is number => n !== null);
+    return numeros.length > 0 ? Math.max(...numeros) + 1 : reglas.length + 1;
+  }, [reglas]);
+
+  // Estados para panel de orden de reglas y simulación FWC
+  const [modalReglaRapidaAbierto, setModalReglaRapidaAbierto] = useState(false);
+  const [modalPseudocodigoAbierto, setModalPseudocodigoAbierto] = useState(false);
+  const [mostrarPanelOrden, setMostrarPanelOrden] = useState(false);
+  const [mostrarVectorHechos, setMostrarVectorHechos] = useState(true);
+  const [vectorHechos, setVectorHechos] = useState<HechoVectorItem[]>([]);
+  const vectorHechosInicializadoRef = useRef(false);
+  const [ejecutandoInferencia, setEjecutandoInferencia] = useState(false);
+  const [estadosInferencia, setEstadosInferencia] = useState<Record<string, 'ACTIVADA' | 'EJECUTADA' | 'RECHAZADA' | 'ANALIZANDO'>>({});
+
+  // Estados específicos para el modo Workflow / Simulación paso a paso
+  const [pasosWorkflow, setPasosWorkflow] = useState<PasoWorkflow[]>([]);
+  const [pasoActualWorkflowIndex, setPasoActualWorkflowIndex] = useState(0);
+  const [modoEjecucionWorkflow, setModoEjecucionWorkflow] = useState<'DIRECTO' | 'PASO_A_PASO'>('PASO_A_PASO');
+  const [conclusionFinalWorkflow, setConclusionFinalWorkflow] = useState<string | null>(null);
+
+  // Inicializar vector de hechos una sola vez al cargar hechos de la BC
+  useEffect(() => {
+    if (hechos.length > 0 && !vectorHechosInicializadoRef.current) {
+      vectorHechosInicializadoRef.current = true;
+      setVectorHechos(
+        hechos.map((h) => ({
+          nombre: h.nombre,
+          valor: String(h.valor ?? ''),
+        }))
+      );
+    }
+  }, [hechos]);
+
   // Sincronización automática de la Base de Conocimiento al entrar a la vista o actualizar datos
   useEffect(() => {
     if (!isCargando) {
@@ -146,8 +204,8 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
 
       try {
         const saved =
-          localStorage.getItem(`editor_pos_v2_${sistemaId}`) ||
-          localStorage.getItem(`editor_pos_${sistemaId}`);
+          localStorage.getItem(`editor_pos_v2_${sistemaId}_${vistaModo}`) ||
+          localStorage.getItem(`editor_pos_${sistemaId}_${vistaModo}`);
         if (saved) {
           const parsed = JSON.parse(saved);
           // Validar que las posiciones guarden la jerarquía pedagógica correcta (Regla arriba de Condición)
@@ -188,18 +246,27 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         reglas,
         posicionesGuardadas,
         savedEdgePoints,
-        nodosVisuales
+        nodosVisuales,
+        vistaModo
       );
 
-      // Conservar IDs visuales creados en esta sesión aunque la consulta aún esté desactualizada.
+      // Conservar IDs visuales creados en esta sesión y preservar el estado de inferencia de reglas
       setNodes((actuales) => {
         const visualIds = new Map(actuales.map((n) => [n.id, n.data.nodoVisualId]));
         return nuevosNodos
           .filter((n) => !nodosEliminandoRef.current.has(n.id))
-          .map((n) => ({
-            ...n,
-            data: { ...n.data, nodoVisualId: visualIds.get(n.id) ?? n.data.nodoVisualId },
-          }));
+          .map((n) => {
+            const ruleId = n.type === 'REGLA' ? String(n.data.id) : undefined;
+            const estadoInf = ruleId ? estadosInferencia[ruleId] : undefined;
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                nodoVisualId: visualIds.get(n.id) ?? n.data.nodoVisualId,
+                estadoInferencia: estadoInf ?? n.data.estadoInferencia,
+              },
+            };
+          });
       });
       setEdges(nuevasEdges.filter((e) =>
         !nodosEliminandoRef.current.has(e.source) && !nodosEliminandoRef.current.has(e.target)
@@ -210,7 +277,7 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         setTimeout(() => fitViewRef.current({ padding: 0.2 }), 250);
       }
     }
-  }, [isCargando, hechos, variables, reglas, nodosVisuales, sistemaId, eliminando]);
+  }, [isCargando, hechos, variables, reglas, nodosVisuales, sistemaId, eliminando, estadosInferencia, vistaModo]);
 
   // Manejar click en nodo -> abrir panel de propiedades
   const onNodeClick = useCallback(
@@ -821,8 +888,8 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
       let savedEdgePoints: Record<string, { x: number; y: number }> = {};
       try {
         const saved =
-          localStorage.getItem(`editor_pos_v2_${sistemaId}`) ||
-          localStorage.getItem(`editor_pos_${sistemaId}`);
+          localStorage.getItem(`editor_pos_v2_${sistemaId}_${vistaModo}`) ||
+          localStorage.getItem(`editor_pos_${sistemaId}_${vistaModo}`);
         if (saved) posicionesGuardadas = JSON.parse(saved);
         const savedEdges = localStorage.getItem(`editor_edges_v2_${sistemaId}`);
         if (savedEdges) savedEdgePoints = JSON.parse(savedEdges);
@@ -836,7 +903,8 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         r,
         posicionesGuardadas,
         savedEdgePoints,
-        resEditor.data?.backendData?.nodos
+        resEditor.data?.backendData?.nodos,
+        vistaModo
       );
 
       setNodes(nuevosNodos);
@@ -848,6 +916,462 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
       setSincronizando(false);
     }
   };
+
+  // Manejar creación rápida de regla completa (IF-THEN)
+  const handleReglaRapidaCreada = useCallback(
+    async (_reglaCreada: unknown) => {
+      setModalReglaRapidaAbierto(false);
+      await Promise.all([
+        refetchBase(),
+        refetchReglas(),
+        refetchVariables(),
+        refetchHechos(),
+        refetchEditorVisual(),
+      ]);
+      setTimeout(() => fitViewRef.current({ padding: 0.2 }), 300);
+    },
+    [refetchBase, refetchReglas, refetchVariables, refetchHechos, refetchEditorVisual]
+  );
+
+  // Manejar actualización de prioridad desde el panel de orden
+  const handleActualizarPrioridad = useCallback(
+    async (reglaId: string | number, nuevaPrioridad: number) => {
+      try {
+        await baseConocimientoService.actualizarRegla(reglaId, {
+          prioridad: nuevaPrioridad,
+        });
+        await refetchReglas();
+      } catch (err) {
+        console.error('Error al actualizar prioridad de regla:', err);
+      }
+    },
+    [refetchReglas]
+  );
+
+  // Seleccionar y enfocar una regla en el lienzo desde el panel de orden
+  const handleSeleccionarRegla = useCallback(
+    (reglaId: string | number) => {
+      const targetNode = nodes.find(
+        (n) => n.id === `regla_${reglaId}` || (n.type === 'REGLA' && String(n.data?.id) === String(reglaId))
+      );
+      if (targetNode) {
+        fitViewRef.current({ nodes: [targetNode], duration: 500, padding: 0.6 });
+        seleccionarNodo(targetNode);
+      }
+    },
+    [nodes, seleccionarNodo]
+  );
+
+  // Construir los pasos estructurados de trazabilidad FWC por Pasadas Pedagógicas
+  const construirPasosWorkflow = useCallback(
+    (
+      _ejecucion: any,
+      vectorIni: HechoVectorItem[],
+      todasLasReglas: typeof reglas
+    ): PasoWorkflow[] => {
+      const pasos: PasoWorkflow[] = [];
+
+      // Mapa auxiliar para resolver nombres de variables y hechos por ID
+      const idToName = new Map<string, string>();
+      (variables || []).forEach((v) => {
+        if (v?.id && v?.nombre) idToName.set(String(v.id), String(v.nombre).trim());
+      });
+      (hechos || []).forEach((h) => {
+        if (h?.id && h?.nombre) idToName.set(String(h.id), String(h.nombre).trim());
+      });
+      (nodes || []).forEach((n) => {
+        if (n.data?.id && n.data?.nombre) {
+          idToName.set(String(n.data.id), String(n.data.nombre).trim());
+        }
+      });
+
+      // Ordenar las reglas por prioridad (descendente) o mantener orden de definición
+      const reglasOrdenadas = [...todasLasReglas].sort(
+        (a, b) => (b.prioridad ?? 10) - (a.prioridad ?? 10)
+      );
+
+      // Base de Hechos inicial
+      let bhActual: HechoVectorItem[] = vectorIni.map((h) => ({
+        nombre: String(h.nombre).trim(),
+        valor: String(h.valor).trim(),
+      }));
+
+      const origenPorHecho = new Map<string, string>();
+      bhActual.forEach((h) => {
+        if (h.nombre) origenPorHecho.set(h.nombre.toLowerCase(), 'Vector BH Inicial (Cliente)');
+      });
+
+      const reglasMarcadas = new Set<string>(); // IDs de reglas que ya dispararon
+      const reglasMarcadasNombres: string[] = []; // Nombres de reglas para el hito
+
+      let pasadaNumero = 1;
+      let pasoContador = 1;
+      let contradiccionGlobal: ContradiccionPaso | undefined = undefined;
+
+      const MAX_PASADAS = 25; // Límite de seguridad pedagógico
+
+      while (pasadaNumero <= MAX_PASADAS && !contradiccionGlobal) {
+        // La Base de Hechos con la que se evalúa toda la pasada está CONGELADA al inicio de la pasada
+        const bhInicioPasada = [...bhActual];
+        let huboDisparoEnPasada = false;
+        const nuevosHechosDeEstaPasada: Array<{ nombre: string; valor: string; reglaNombre: string }> = [];
+
+        // Evaluar en orden cada una de las reglas
+        for (const reglaObj of reglasOrdenadas) {
+          const rId = String(reglaObj.id);
+          const rNombre = reglaObj.nombre || `Regla ${rId}`;
+          const prioridad = reglaObj.prioridad ?? 10;
+
+          // 1. Si la regla ya disparó en una pasada anterior, queda marcada y deshabilitada
+          if (reglasMarcadas.has(rId)) {
+            pasos.push({
+              pasoNumero: pasoContador++,
+              vueltaNumero: pasadaNumero,
+              pasadaNumero,
+              tipoPaso: 'EVALUACION_REGLA',
+              reglaId: rId,
+              reglaNombre: rNombre,
+              prioridad,
+              estado: 'DESHABILITADA',
+              motivoDescarte: `Regla ya disparada en una pasada anterior. Queda deshabilitada para la Pasada #${pasadaNumero}.`,
+              condicionesEvaluadas: [],
+              reglasMarcadas: [...reglasMarcadasNombres],
+              bhInicioPasada: [...bhInicioPasada],
+              memoriaTrabajoSnapshot: [...bhActual],
+            });
+            continue;
+          }
+
+          // 2. Evaluar condiciones contra la Base de Hechos viva (actualizada inmediatamente con deducciones previas)
+          const conds = (reglaObj.condiciones || []).map((c: any) => {
+            let sujeto = String(c.variable_nombre || c.referencia || c.sujeto || '').trim();
+            if (!sujeto && c.variable_id) sujeto = idToName.get(String(c.variable_id)) || '';
+            if (!sujeto && c.hecho_id) sujeto = idToName.get(String(c.hecho_id)) || '';
+            if (!sujeto && typeof c.variable === 'object' && c.variable) sujeto = String(c.variable.nombre || '').trim();
+            if (!sujeto && (c.variable || c.nombre)) sujeto = String(c.variable || c.nombre).trim();
+
+            const operador = c.operador || '=';
+            const valorEsperado = String(c.valor_esperado ?? c.valor ?? '').trim();
+
+            // Buscar en la Base de Hechos viva
+            const hechoEnBH = bhActual.find(
+              (h) => sujeto && h.nombre.toLowerCase() === sujeto.toLowerCase()
+            );
+            const valorEnBH = hechoEnBH?.valor;
+
+            let cumple = false;
+            if (valorEnBH !== undefined) {
+              if (operador === '=') cumple = String(valorEnBH).toLowerCase() === valorEsperado.toLowerCase();
+              else if (operador === '!=') cumple = String(valorEnBH).toLowerCase() !== valorEsperado.toLowerCase();
+              else if (operador === '>') cumple = Number(valorEnBH) > Number(valorEsperado);
+              else if (operador === '<') cumple = Number(valorEnBH) < Number(valorEsperado);
+              else if (operador === '>=') cumple = Number(valorEnBH) >= Number(valorEsperado);
+              else if (operador === '<=') cumple = Number(valorEnBH) <= Number(valorEsperado);
+            }
+
+            return {
+              sujeto,
+              operador,
+              valorEsperado,
+              valorEnBH,
+              cumple,
+            };
+          });
+
+          const todasCumplen = conds.length > 0 && conds.every((c) => c.cumple);
+
+          if (todasCumplen) {
+            // La regla dispara y queda marcada
+            huboDisparoEnPasada = true;
+            reglasMarcadas.add(rId);
+            reglasMarcadasNombres.push(rNombre);
+
+            // Obtener consecuencia deducida
+            let hechoProducido: { nombre: string; valor: string } | undefined = undefined;
+            if (reglaObj.conclusiones && reglaObj.conclusiones.length > 0) {
+              const c0 = reglaObj.conclusiones[0] as any;
+              let nombreVar = String(c0.variable_nombre || c0.destino || c0.nombre || '').trim();
+              if (!nombreVar && c0.variable_resultante_id) nombreVar = idToName.get(String(c0.variable_resultante_id)) || '';
+              if (!nombreVar && c0.hecho_resultante_id) nombreVar = idToName.get(String(c0.hecho_resultante_id)) || '';
+              if (!nombreVar && typeof c0.variable === 'object' && c0.variable) nombreVar = String(c0.variable.nombre || '').trim();
+
+              hechoProducido = {
+                nombre: nombreVar || 'Deducción',
+                valor: String(c0.valor_resultante ?? c0.valor ?? '').trim(),
+              };
+            }
+
+            let pasoContradiccion: ContradiccionPaso | undefined = undefined;
+
+            if (hechoProducido && hechoProducido.nombre) {
+              nuevosHechosDeEstaPasada.push({
+                nombre: hechoProducido.nombre,
+                valor: hechoProducido.valor,
+                reglaNombre: rNombre,
+              });
+
+              // Contrastar e incorporar INMEDIATAMENTE a la Base de Hechos viva
+              const clave = hechoProducido.nombre.toLowerCase();
+              const existenteIdx = bhActual.findIndex((h) => h.nombre.toLowerCase() === clave);
+
+              if (existenteIdx >= 0) {
+                const existente = bhActual[existenteIdx];
+                if (String(existente.valor).trim().toLowerCase() !== hechoProducido.valor.toLowerCase()) {
+                  const origen = origenPorHecho.get(clave) || 'Entrada Inicial';
+                  const esCliente = origen.toLowerCase().includes('cliente') || origen.toLowerCase().includes('inicial');
+                  pasoContradiccion = {
+                    tipo: esCliente ? 'CLIENTE_REGLA' : 'REGLA_REGLA',
+                    variable: hechoProducido.nombre,
+                    valorAnterior: existente.valor,
+                    valorNuevo: hechoProducido.valor,
+                    origenAnterior: origen,
+                  };
+                  contradiccionGlobal = pasoContradiccion;
+                }
+                // Actualizar de inmediato en BH
+                bhActual[existenteIdx] = { nombre: hechoProducido.nombre, valor: hechoProducido.valor };
+              } else {
+                // Adicionar de inmediato a BH
+                bhActual.push({ nombre: hechoProducido.nombre, valor: hechoProducido.valor });
+              }
+              origenPorHecho.set(clave, `Regla ${rNombre}`);
+            }
+
+            pasos.push({
+              pasoNumero: pasoContador++,
+              vueltaNumero: pasadaNumero,
+              pasadaNumero,
+              tipoPaso: 'EVALUACION_REGLA',
+              reglaId: rId,
+              reglaNombre: rNombre,
+              prioridad,
+              estado: 'EJECUTADA',
+              condicionesEvaluadas: conds,
+              hechoProducido,
+              reglasMarcadas: [...reglasMarcadasNombres],
+              bhInicioPasada: [...bhInicioPasada],
+              memoriaTrabajoSnapshot: [...bhActual],
+              contradiccion: pasoContradiccion,
+            });
+
+            // Si se detecta contradicción, detenemos la evaluación de la pasada
+            if (pasoContradiccion) {
+              break;
+            }
+          } else {
+            // Regla no satisface premisas con la BH actual
+            pasos.push({
+              pasoNumero: pasoContador++,
+              vueltaNumero: pasadaNumero,
+              pasadaNumero,
+              tipoPaso: 'EVALUACION_REGLA',
+              reglaId: rId,
+              reglaNombre: rNombre,
+              prioridad,
+              estado: 'RECHAZADA',
+              motivoDescarte: 'Premisas no satisfechas con la Base de Hechos actual.',
+              condicionesEvaluadas: conds,
+              reglasMarcadas: [...reglasMarcadasNombres],
+              bhInicioPasada: [...bhInicioPasada],
+              memoriaTrabajoSnapshot: [...bhActual],
+            });
+          }
+        }
+
+        // HITO: Consolidación y Cierre de la Pasada
+        pasos.push({
+          pasoNumero: pasoContador++,
+          vueltaNumero: pasadaNumero,
+          pasadaNumero,
+          tipoPaso: 'CIERRE_PASADA',
+          reglaId: '',
+          reglaNombre: `Base de Hechos Resultante (Fin de ${pasadaNumero}ª Pasada)`,
+          prioridad: 0,
+          estado: 'CIERRE_PASADA',
+          condicionesEvaluadas: [],
+          nuevosHechosPasada: [...nuevosHechosDeEstaPasada],
+          reglasMarcadas: [...reglasMarcadasNombres],
+          bhInicioPasada: [...bhInicioPasada],
+          memoriaTrabajoSnapshot: [...bhActual],
+          contradiccion: contradiccionGlobal,
+        });
+
+        if (contradiccionGlobal) {
+          // Si hubo contradicción, la inferencia se detiene
+          break;
+        }
+
+        if (!huboDisparoEnPasada) {
+          // No hubo más reglas que dispararan (quiescencia)
+          break;
+        }
+
+        pasadaNumero++;
+      }
+
+      return pasos;
+    },
+    [variables, hechos, nodes]
+  );
+
+  // Aplicar visualmente un paso de la simulación en el lienzo
+  const aplicarPasoEnGrafo = useCallback(
+    (pasoIdx: number, listaPasos: PasoWorkflow[]) => {
+      if (listaPasos.length === 0 || pasoIdx < 0 || pasoIdx >= listaPasos.length) return;
+      const paso = listaPasos[pasoIdx];
+
+      const nuevosEstados: Record<string, any> = {};
+      for (let i = 0; i < pasoIdx; i++) {
+        const p = listaPasos[i];
+        if (p.reglaId) {
+          nuevosEstados[p.reglaId] = p.estado === 'CIERRE_PASADA' ? 'EJECUTADA' : p.estado;
+        }
+      }
+      if (paso.reglaId) {
+        nuevosEstados[paso.reglaId] = 'ANALIZANDO';
+      }
+
+      setEstadosInferencia(nuevosEstados);
+
+      setNodes((prevNodes) =>
+        prevNodes.map((n) => {
+          if (n.type === 'REGLA') {
+            const ruleId = String(n.data.id);
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                estadoInferencia: nuevosEstados[ruleId] || undefined,
+              },
+            };
+          }
+          return n;
+        })
+      );
+
+      // Centrar cámara suavemente en la regla evaluada (si es un paso de regla)
+      if (paso.reglaId) {
+        const targetNode = nodes.find(
+          (n) => n.id === `regla_${paso.reglaId}` || (n.type === 'REGLA' && String(n.data?.id) === paso.reglaId)
+        );
+        if (targetNode) {
+          fitViewRef.current({ nodes: [targetNode], duration: 400, padding: 0.6 });
+        }
+      }
+    },
+    [nodes, setNodes]
+  );
+
+  // Ejecución directa estándar de Forward Chaining
+  const handleEjecutarInferenciaDirecta = useCallback(async () => {
+    if (!sistemaId) return;
+    setEjecutandoInferencia(true);
+    try {
+      const payloadHechos = vectorHechos.map((h) => ({
+        nombre: h.nombre,
+        valor: h.valor,
+      }));
+
+      const ejecucion = await inferenciaService.ejecutar(sistemaId, {
+        hechos_iniciales: payloadHechos,
+      });
+
+      const pasosConstruidos = construirPasosWorkflow(ejecucion, vectorHechos, reglas);
+      setPasosWorkflow(pasosConstruidos);
+      setConclusionFinalWorkflow(ejecucion.conclusion_final || null);
+
+      if (pasosConstruidos.length > 0) {
+        setPasoActualWorkflowIndex(pasosConstruidos.length - 1);
+        const nuevosEstados: Record<string, any> = {};
+        pasosConstruidos.forEach((p) => {
+          if (p.reglaId) {
+            nuevosEstados[p.reglaId] = p.estado;
+          }
+        });
+        setEstadosInferencia(nuevosEstados);
+
+        setNodes((prevNodes) =>
+          prevNodes.map((n) => {
+            if (n.type === 'REGLA') {
+              const ruleId = String(n.data.id);
+              return {
+                ...n,
+                data: {
+                  ...n.data,
+                  estadoInferencia: nuevosEstados[ruleId] || undefined,
+                },
+              };
+            }
+            return n;
+          })
+        );
+      }
+    } catch (err) {
+      console.error('Error al ejecutar inferencia FWC:', err);
+    } finally {
+      setEjecutandoInferencia(false);
+    }
+  }, [sistemaId, vectorHechos, reglas, construirPasosWorkflow, setNodes]);
+
+  // Iniciar la simulación paso a paso interactiva
+  const handleIniciarSimulacionPasoAPaso = useCallback(async () => {
+    if (!sistemaId) return;
+    setEjecutandoInferencia(true);
+    try {
+      const payloadHechos = vectorHechos.map((h) => ({
+        nombre: h.nombre,
+        valor: h.valor,
+      }));
+
+      const ejecucion = await inferenciaService.ejecutar(sistemaId, {
+        hechos_iniciales: payloadHechos,
+      });
+
+      const pasosConstruidos = construirPasosWorkflow(ejecucion, vectorHechos, reglas);
+      setPasosWorkflow(pasosConstruidos);
+      setConclusionFinalWorkflow(ejecucion.conclusion_final || null);
+
+      if (pasosConstruidos.length > 0) {
+        setPasoActualWorkflowIndex(0);
+        aplicarPasoEnGrafo(0, pasosConstruidos);
+      }
+    } catch (err) {
+      console.error('Error al iniciar simulación FWC:', err);
+    } finally {
+      setEjecutandoInferencia(false);
+    }
+  }, [sistemaId, vectorHechos, reglas, construirPasosWorkflow, aplicarPasoEnGrafo]);
+
+  // Cambiar manualmente al paso deseado en el workflow
+  const handleCambiarPasoWorkflow = useCallback(
+    (nuevoIdx: number) => {
+      setPasoActualWorkflowIndex(nuevoIdx);
+      aplicarPasoEnGrafo(nuevoIdx, pasosWorkflow);
+    },
+    [pasosWorkflow, aplicarPasoEnGrafo]
+  );
+
+  // Reiniciar la simulación y limpiar estados visuales
+  const handleReiniciarSimulacion = useCallback(() => {
+    setPasosWorkflow([]);
+    setPasoActualWorkflowIndex(0);
+    setConclusionFinalWorkflow(null);
+    setEstadosInferencia({});
+    setNodes((prevNodes) =>
+      prevNodes.map((n) => {
+        if (n.type === 'REGLA') {
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              estadoInferencia: undefined,
+            },
+          };
+        }
+        return n;
+      })
+    );
+  }, [setNodes]);
 
   // Guardar cambios de propiedades de un nodo en el backend
   const handleGuardarPropiedades = async (
@@ -861,6 +1385,25 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
       const entidadId = targetNode?.data?.id;
       const tipo = targetNode?.type;
 
+      // Si vienen condiciones y conclusiones (desde PanelPropiedadesRegla), mapearlas a la tarjeta Todo-en-Uno
+      const rawConds = (nuevosDatos as Record<string, unknown>).condiciones as CondicionItemInput[] | undefined;
+      const rawConcls = (nuevosDatos as Record<string, unknown>).conclusiones as ConclusionItemInput[] | undefined;
+
+      const condsLista = Array.isArray(rawConds)
+        ? rawConds.map((c) => ({
+            sujeto: c.variable_nombre || 'Dato',
+            operador: c.operador,
+            valor: c.valor_esperado,
+          }))
+        : undefined;
+
+      const conclsLista = Array.isArray(rawConcls)
+        ? rawConcls.map((c) => ({
+            destino: c.variable_nombre || 'Meta',
+            valor: c.valor_resultante,
+          }))
+        : undefined;
+
       // 1. Actualizar estado local inmediatamente para reactividad fluida
       setNodes((nds) =>
         nds.map((n) => {
@@ -870,13 +1413,19 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
               data: {
                 ...n.data,
                 ...nuevosDatos,
+                ...(condsLista ? { condicionesLista: condsLista } : {}),
+                ...(conclsLista ? { conclusionesLista: conclsLista } : {}),
               },
             };
           }
           return n;
         })
       );
-      actualizarDatosNodoSeleccionado(nuevosDatos);
+      actualizarDatosNodoSeleccionado({
+        ...nuevosDatos,
+        ...(condsLista ? { condicionesLista: condsLista } : {}),
+        ...(conclsLista ? { conclusionesLista: conclsLista } : {}),
+      });
 
       // 2. Persistir en backend según el tipo de entidad
       const isLocal = Boolean(targetNode?.data?.isLocal || String(entidadId).startsWith('local_'));
@@ -1159,14 +1708,27 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           });
           refetchVariables();
         } else if (tipo === 'REGLA') {
-          await baseConocimientoService.actualizarRegla(entidadId, {
-            nombre: nuevosDatos.nombre,
-            descripcion: nuevosDatos.descripcion,
-            prioridad: nuevosDatos.prioridad,
-            factor_certeza: nuevosDatos.factor_certeza !== undefined ? Number(nuevosDatos.factor_certeza) : undefined,
-            activa: nuevosDatos.activa,
-          });
+          if (rawConds !== undefined || rawConcls !== undefined) {
+            await baseConocimientoService.actualizarReglaCompleta(entidadId, {
+              nombre: nuevosDatos.nombre || 'Regla',
+              descripcion: nuevosDatos.descripcion,
+              prioridad: nuevosDatos.prioridad ?? 10,
+              factor_certeza: nuevosDatos.factor_certeza !== undefined ? Number(nuevosDatos.factor_certeza) : undefined,
+              activa: nuevosDatos.activa !== false,
+              condiciones: rawConds || [],
+              conclusiones: rawConcls || [],
+            });
+          } else {
+            await baseConocimientoService.actualizarRegla(entidadId, {
+              nombre: nuevosDatos.nombre,
+              descripcion: nuevosDatos.descripcion,
+              prioridad: nuevosDatos.prioridad,
+              factor_certeza: nuevosDatos.factor_certeza !== undefined ? Number(nuevosDatos.factor_certeza) : undefined,
+              activa: nuevosDatos.activa,
+            });
+          }
           refetchReglas();
+          refetchVariables();
         } else if (tipo === 'CONDICION') {
           await baseConocimientoService.actualizarCondicion(entidadId, {
             operador: nuevosDatos.operador,
@@ -1221,6 +1783,7 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         }
       }
 
+      localStorage.setItem(`editor_pos_v2_${sistemaId}_${vistaModo}`, JSON.stringify(posMap));
       localStorage.setItem(`editor_pos_v2_${sistemaId}`, JSON.stringify(posMap));
       localStorage.setItem(`editor_edges_v2_${sistemaId}`, JSON.stringify(edgeControlPoints));
 
@@ -1282,7 +1845,9 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
       variables,
       reglas,
       {},
-      {}
+      {},
+      undefined,
+      vistaModo
     );
     setNodes(nuevosNodos);
     setEdges(nuevasEdges);
@@ -1377,8 +1942,12 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
       </div>
 
       {/* Barra de herramientas */}
-      <div className="shrink-0">
+      <div className="shrink-0 space-y-2">
         <EditorToolbar
+          modoEditor={modoEditor}
+          onChangeModoEditor={setModoEditor}
+          vistaModo={vistaModo}
+          onChangeVistaModo={handleCambiarVistaModo}
           onAgregarNodo={handleAgregarNodo}
           onGuardarPosiciones={handleGuardarPosiciones}
           onCentrarVista={() => fitView({ padding: 0.2 })}
@@ -1386,11 +1955,68 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           onReorganizar={handleReorganizarGrafo}
           sincronizando={sincronizando}
           guardando={guardando || eliminando}
+          onAbrirModalReglaRapida={() => setModalReglaRapidaAbierto(true)}
+          onAbrirModalPseudocodigo={() => setModalPseudocodigoAbierto(true)}
+          mostrarPanelOrden={mostrarPanelOrden}
+          onTogglePanelOrden={() => setMostrarPanelOrden((prev) => !prev)}
+          mostrarVectorHechos={mostrarVectorHechos}
+          onToggleVectorHechos={() => setMostrarVectorHechos((prev) => !prev)}
         />
+
+        {/* En Modo Simulación: Barra Vector BH y Panel de Workflow HUD */}
+        {modoEditor === 'SIMULACION' && (
+          <div className="space-y-2">
+            {mostrarVectorHechos && (
+              <BarraVectorHechos
+                hechos={vectorHechos}
+                onActualizarHechos={setVectorHechos}
+                onEjecutarInferencia={handleEjecutarInferenciaDirecta}
+                ejecutando={ejecutandoInferencia}
+                sugerenciasVariables={variables.map((v) => v.nombre)}
+                totalReglas={reglas.length}
+              />
+            )}
+
+            <PanelWorkflowInferencia
+              pasos={pasosWorkflow}
+              pasoActualIndex={pasoActualWorkflowIndex}
+              onCambiarPaso={handleCambiarPasoWorkflow}
+              onEjecutarDirecto={handleEjecutarInferenciaDirecta}
+              onIniciarPasoAPaso={handleIniciarSimulacionPasoAPaso}
+              onReiniciar={handleReiniciarSimulacion}
+              onEnfocarRegla={(rId) => handleSeleccionarRegla(rId)}
+              ejecutando={ejecutandoInferencia}
+              conclusionFinal={conclusionFinalWorkflow}
+              modoEjecucion={modoEjecucionWorkflow}
+              onCambiarModoEjecucion={setModoEjecucionWorkflow}
+            />
+          </div>
+        )}
+
+        {/* En Modo Diseño: Barra Vector BH si está activado el toggle */}
+        {modoEditor === 'DISENO' && mostrarVectorHechos && (
+          <BarraVectorHechos
+            hechos={vectorHechos}
+            onActualizarHechos={setVectorHechos}
+            onEjecutarInferencia={handleEjecutarInferenciaDirecta}
+            ejecutando={ejecutandoInferencia}
+            sugerenciasVariables={variables.map((v) => v.nombre)}
+            totalReglas={reglas.length}
+          />
+        )}
       </div>
 
       {/* Contenedor del Lienzo React Flow + Panel Lateral */}
       <div className="flex-1 bg-white rounded-2xl border border-slate-200 shadow-inner relative overflow-hidden flex">
+        {/* Panel lateral retráctil de orden de evaluación de reglas */}
+        <PanelOrdenReglas
+          reglas={reglas}
+          isOpen={mostrarPanelOrden}
+          onClose={() => setMostrarPanelOrden(false)}
+          onSeleccionarRegla={handleSeleccionarRegla}
+          onActualizarPrioridad={handleActualizarPrioridad}
+        />
+
         <div className="flex-1 h-full w-full relative">
           {/* Indicador flotante cuando se sincroniza manualmente */}
           {sincronizando && (
@@ -1407,15 +2033,24 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
                 <Database className="w-10 h-10 text-stone-400 mx-auto" />
                 <h4 className="font-bold text-stone-800 text-sm">Base de Conocimiento Vacía</h4>
                 <p className="text-xs text-stone-500">
-                  Agrega hechos, variables y reglas en la Base de Conocimiento o utiliza los botones superiores para diseñar el diagrama.
+                  Agrega hechos, variables y reglas en la Base de Conocimiento o utiliza el botón <strong>+ Regla Rápida</strong> para diseñar el sistema.
                 </p>
-                <Permiso permisos={[Permisos.BASE_CONOCIMIENTO_VER]}><Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => navigate(`/sistemas/${sistemaId}/base-conocimiento`)}
-                >
-                  Ir a Base de Conocimiento
-                </Button></Permiso>
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setModalReglaRapidaAbierto(true)}
+                  >
+                    + Crear Primera Regla
+                  </Button>
+                  <Permiso permisos={[Permisos.BASE_CONOCIMIENTO_VER]}><Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/sistemas/${sistemaId}/base-conocimiento`)}
+                  >
+                    Ir a Base de C.
+                  </Button></Permiso>
+                </div>
               </div>
             </div>
           )}
@@ -1467,6 +2102,33 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           reglas={reglas}
         />
       </div>
+
+      {/* Modal de Creación Rápida de Reglas IF-THEN con correlativo semiautomático */}
+      {effectiveBaseId && (
+        <CrearReglaRapidaModal
+          isOpen={modalReglaRapidaAbierto}
+          onClose={() => setModalReglaRapidaAbierto(false)}
+          baseConocimientoId={effectiveBaseId}
+          onReglaCreada={handleReglaRapidaCreada}
+          variablesExistentes={variables}
+          hechosExistentes={hechos}
+          siguienteNumeroRegla={siguienteNumeroRegla}
+        />
+      )}
+
+      {/* Modal de Edición de Reglas por Pseudocódigo / DSL */}
+      {effectiveBaseId && (
+        <EditorPseudocodigoModal
+          isOpen={modalPseudocodigoAbierto}
+          onClose={() => setModalPseudocodigoAbierto(false)}
+          baseConocimientoId={effectiveBaseId}
+          reglasActuales={reglas}
+          variablesExistentes={variables}
+          onReglasActualizadas={async () => {
+            await Promise.all([refetchReglas(), refetchVariables(), refetchHechos()]);
+          }}
+        />
+      )}
     </div>
   );
 };

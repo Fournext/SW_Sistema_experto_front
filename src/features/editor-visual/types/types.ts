@@ -28,6 +28,10 @@ export interface NodoDatosGenerales {
   valor_resultante?: string;
   variable_resultante_id?: string | number | null;
   hecho_resultante_id?: string | number | null;
+  ordenNumero?: number;
+  condicionesLista?: Array<{ sujeto: string; operador: string; valor: string }>;
+  conclusionesLista?: Array<{ destino: string; valor: string }>;
+  estadoInferencia?: 'PENDIENTE' | 'ACTIVADA' | 'EJECUTADA' | 'RECHAZADA' | 'ANALIZANDO' | null;
   [key: string]: unknown;
 }
 

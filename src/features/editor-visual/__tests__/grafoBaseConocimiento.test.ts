@@ -226,4 +226,93 @@ describe('construirGrafoBaseConocimiento', () => {
       y: 150,
     });
   });
+
+  it('en modo SIMPLIFICADA renderiza únicamente tarjetas de reglas Todo-en-Uno sin nodos satélites y con encadenamiento directo', () => {
+    const r1: Regla = {
+      id: 1,
+      nombre: 'R1',
+      prioridad: 10,
+      factor_certeza: 1.0,
+      activa: true,
+      condiciones: [{ id: 11, variable_nombre: 'x', operador: '=', valor_esperado: '0' }],
+      conclusiones: [{ id: 21, variable_nombre: 'P', valor_resultante: 'a' }],
+    };
+
+    const r2: Regla = {
+      id: 2,
+      nombre: 'R2',
+      prioridad: 9,
+      factor_certeza: 1.0,
+      activa: true,
+      condiciones: [{ id: 12, variable_nombre: 'P', operador: '=', valor_esperado: 'a' }],
+      conclusiones: [{ id: 22, variable_nombre: 'C', valor_resultante: 'b' }],
+    };
+
+    const { nodes, edges } = construirGrafoBaseConocimiento([], [], [r1, r2], {}, {}, [], 'SIMPLIFICADA');
+
+    // 1. Debe haber exactamente 2 nodos (solo las 2 reglas) y ningún nodo satélite de condición o conclusión
+    expect(nodes.length).toBe(2);
+    expect(nodes.every((n) => n.type === 'REGLA')).toBe(true);
+    expect(nodes.some((n) => n.type === 'CONDICION')).toBe(false);
+    expect(nodes.some((n) => n.type === 'CONCLUSION')).toBe(false);
+
+    // 2. Las posiciones deben estar distribuidas en cuadrícula sin superponerse
+    const nodoR1 = nodes.find((n) => n.id === 'regla_1');
+    const nodoR2 = nodes.find((n) => n.id === 'regla_2');
+    expect(nodoR1).toBeDefined();
+    expect(nodoR2).toBeDefined();
+    expect(nodoR1!.position.x).not.toEqual(nodoR2!.position.x);
+
+    // 3. Los datos de la tarjeta Todo-en-Uno deben contener premisas y conclusiones embebidas
+    expect(nodoR1!.data.condicionesLista).toHaveLength(1);
+    expect(nodoR1!.data.conclusionesLista).toHaveLength(1);
+
+    // 4. Debe existir una arista directa de encadenamiento entre R1 y R2 (R1 concluye P, R2 evalúa P)
+    const edgeEncadena = edges.find((e) => e.source === 'regla_1' && e.target === 'regla_2');
+    expect(edgeEncadena).toBeDefined();
+    expect(edgeEncadena!.label).toBe('ENCADENA');
+  });
+
+  it('en modo COMPLETA separa horizontalmente subárboles de reglas R1 y R2 sin solapamiento', () => {
+    const r1: Regla = {
+      id: 1,
+      nombre: 'R1',
+      prioridad: 10,
+      factor_certeza: 1.0,
+      activa: true,
+      condiciones: [{ id: 11, variable_nombre: 'B', operador: '=', valor_esperado: '8' }],
+      conclusiones: [{ id: 21, variable_nombre: 'C', valor_resultante: 'a' }],
+    };
+
+    const r2: Regla = {
+      id: 2,
+      nombre: 'R2',
+      prioridad: 9,
+      factor_certeza: 1.0,
+      activa: true,
+      condiciones: [{ id: 12, variable_nombre: 'H', operador: '=', valor_esperado: '18' }],
+      conclusiones: [{ id: 22, variable_nombre: 'P', valor_resultante: '15' }],
+    };
+
+    const variables: Variable[] = [
+      { id: 'v1', nombre: 'B', tipo: 'ENTERO' },
+      { id: 'v2', nombre: 'C', tipo: 'TEXTO' },
+      { id: 'v3', nombre: 'H', tipo: 'ENTERO' },
+      { id: 'v4', nombre: 'P', tipo: 'ENTERO' },
+    ];
+
+    const { nodes } = construirGrafoBaseConocimiento([], variables, [r1, r2], {}, {}, [], 'COMPLETA');
+
+    const nodoR1 = nodes.find((n) => n.id === 'regla_1');
+    const nodoR2 = nodes.find((n) => n.id === 'regla_2');
+    expect(nodoR1).toBeDefined();
+    expect(nodoR2).toBeDefined();
+
+    // R1 y R2 deben estar a la derecha de la columna de variables (X >= 360)
+    expect(nodoR1!.position.x).toBeGreaterThanOrEqual(360);
+    expect(nodoR2!.position.x).toBeGreaterThanOrEqual(360);
+
+    // R1 y R2 NO deben solaparse horizontalmente (distancia mínima de 250px entre columnas)
+    expect(Math.abs(nodoR2!.position.x - nodoR1!.position.x)).toBeGreaterThanOrEqual(250);
+  });
 });

@@ -48,6 +48,7 @@ import ConclusionFinalPanel from '../components/ConclusionFinalPanel';
 import TrazabilidadFlow from '../components/TrazabilidadFlow';
 import PreguntaReglaModal, { type PreguntaEvaluacion } from '../components/PreguntaReglaModal';
 import CuestionarioConsultaModal from '../components/CuestionarioConsultaModal';
+import BarraVectorHechos, { type HechoVectorItem } from '../components/BarraVectorHechos';
 import ValidacionPreviaModal, { type BloqueoValidacion } from '../components/ValidacionPreviaModal';
 import { useValidarBase } from '@/features/validacion/hooks/useValidacion';
 
@@ -79,13 +80,27 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
 
   const { data: sistema, isLoading: isSistemaLoading } = useSistemaExperto(sistemaId);
   const { data: baseConocimiento } = useBaseConocimiento(sistemaId);
-  const effectiveBaseId = baseConocimiento?.id ? String(baseConocimiento.id) : sistemaId;
+  const effectiveBaseId = baseConocimiento?.id ? String(baseConocimiento.id) : undefined;
   const { data: hechosBC = [] } = useHechos(entradasActividad === undefined ? effectiveBaseId : undefined);
   const { data: variables = [] } = useVariables(entradasActividad === undefined ? effectiveBaseId : undefined);
   const { data: reglas = [] } = useReglas(entradasActividad === undefined ? effectiveBaseId : undefined);
   const hechosIniciales: Hecho[] = useMemo(() => entradasActividad === undefined ? hechosBC : entradasActividad.map((entrada) => ({
     ...entrada, id: entrada.id ?? entrada.nombre, valor: String(entrada.valor ?? ''), es_inicial: true,
   })), [entradasActividad, hechosBC]);
+
+  // Vector interactivo de Base de Hechos (BH) para pruebas rápidas
+  const [vectorHechos, setVectorHechos] = useState<HechoVectorItem[]>([]);
+
+  // Sincronizar hechos iniciales desde la Base de Conocimiento al vector BH cuando carguen
+  useEffect(() => {
+    if (hechosBC.length > 0 && vectorHechos.length === 0) {
+      setVectorHechos(
+        hechosBC
+          .filter((h) => h.valor != null && String(h.valor).trim() !== '')
+          .map((h) => ({ nombre: h.nombre, valor: String(h.valor ?? '') }))
+      );
+    }
+  }, [hechosBC]);
 
   // Detectar variables y hechos iniciales (o con pregunta) verificados por las condiciones de las reglas
   const variablesOHechosInicialesEnReglas = useMemo(() => {
@@ -272,8 +287,9 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
         const nombre = v ? v.nombre : (h?.nombre || ref);
         const normKey = nombre.toLowerCase().trim();
 
-        // Si ya fue respondida en esta sesión, no está pendiente
-        if (respuestasActuales[normKey]) {
+        // Si ya fue respondida en esta sesión o ya está definida en el vector BH interactivo, no está pendiente
+        const yaEnVector = vectorHechos.some((vh) => vh.nombre.toLowerCase().trim() === normKey && vh.valor.trim() !== '');
+        if (respuestasActuales[normKey] || yaEnVector) {
           continue;
         }
 
@@ -358,23 +374,51 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
     }
   };
 
-  // Ejecución con las respuestas acumuladas y hechos de la base
+  // Ejecución con las respuestas acumuladas, vector interactivo y hechos de la base
   const ejecutarConRespuestas = async (
     respuestas: Record<string, { nombre: string; valor: string; tipo_dato?: string; opciones?: string[] }>,
     esSimulacion: boolean
   ) => {
     if (!await validarAntesDeInferir()) return;
-    const listaRespuestas = Object.values(respuestas);
-    const nombresRespuestas = new Set(listaRespuestas.map((r) => r.nombre.trim().toLowerCase()));
-    const hechosRestantes = hechosIniciales
-      .filter((h) => !nombresRespuestas.has(h.nombre.trim().toLowerCase()))
-      .map((h) => ({
-        nombre: h.nombre,
-        valor: String(h.valor ?? ''),
-        tipo_dato: h.tipo_dato,
-        opciones: h.opciones,
-      }));
-    const payloadFinal = [...listaRespuestas, ...hechosRestantes];
+
+    // Mapa de tipos de variables conocidas para preservar tipado hacia el backend
+    const mapaTipos = new Map<string, string>();
+    variables.forEach((v) => {
+      if (v.nombre) mapaTipos.set(v.nombre.toLowerCase().trim(), v.tipo_dato || 'TEXTO');
+    });
+
+    const mapaPayload = new Map<string, { nombre: string; valor: string; tipo_dato?: string; opciones?: string[] }>();
+
+    // 1. Hechos fijos guardados en la base de datos
+    hechosIniciales
+      .filter((h) => h.valor != null && String(h.valor).trim() !== '')
+      .forEach((h) => {
+        mapaPayload.set(h.nombre.toLowerCase().trim(), {
+          nombre: h.nombre,
+          valor: String(h.valor ?? ''),
+          tipo_dato: h.tipo_dato,
+          opciones: h.opciones,
+        });
+      });
+
+    // 2. Hechos del vector interactivo BH (sobrescriben o añaden nuevos hechos de prueba)
+    vectorHechos
+      .filter((vh) => vh.nombre.trim() !== '' && vh.valor.trim() !== '')
+      .forEach((vh) => {
+        const key = vh.nombre.toLowerCase().trim();
+        mapaPayload.set(key, {
+          nombre: vh.nombre,
+          valor: vh.valor,
+          tipo_dato: mapaTipos.get(key) || 'TEXTO',
+        });
+      });
+
+    // 3. Respuestas de preguntas interactivas (máxima prioridad)
+    Object.values(respuestas).forEach((r) => {
+      mapaPayload.set(r.nombre.toLowerCase().trim(), r);
+    });
+
+    const payloadFinal = Array.from(mapaPayload.values());
 
     try {
       if (esSimulacion) {
@@ -646,15 +690,42 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
     return Array.from(activadasMap.values());
   })();
 
-  // Lista de hechos combinados para el panel de hechos
+  // Lista de hechos combinados para el panel de hechos (iniciales + interactivos + inferidos)
   const hechosEnMemoria: HechoDeducido[] = (() => {
-    const list: HechoDeducido[] = hechosIniciales
+    const mapaIniciales = new Map<string, HechoDeducido>();
+
+    // 1. Hechos fijos de la base de conocimiento
+    hechosIniciales
       .filter((h) => h.valor != null && String(h.valor).trim() !== '')
-      .map((h) => ({
-      nombre: h.nombre,
-      valor: h.valor,
-      procedencia: 'INICIAL',
-    }));
+      .forEach((h) => {
+        mapaIniciales.set(h.nombre.toLowerCase().trim(), {
+          nombre: h.nombre,
+          valor: h.valor,
+          procedencia: 'INICIAL',
+        });
+      });
+
+    // 2. Hechos del vector interactivo BH (prevalecen sobre la BD)
+    vectorHechos
+      .filter((vh) => vh.nombre.trim() !== '' && vh.valor.trim() !== '')
+      .forEach((vh) => {
+        mapaIniciales.set(vh.nombre.toLowerCase().trim(), {
+          nombre: vh.nombre,
+          valor: vh.valor,
+          procedencia: 'INICIAL',
+        });
+      });
+
+    // 3. Respuestas acumuladas
+    Object.values(respuestasAcumuladas).forEach((r) => {
+      mapaIniciales.set(r.nombre.toLowerCase().trim(), {
+        nombre: r.nombre,
+        valor: r.valor,
+        procedencia: 'INICIAL',
+      });
+    });
+
+    const list: HechoDeducido[] = Array.from(mapaIniciales.values());
 
     const inferidos = hechosInferidosApi.length > 0
       ? hechosInferidosApi
@@ -771,6 +842,17 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
             Validar BC
           </Button>
         </div>
+      </div>
+
+      {/* Barra Interactiva de Base de Hechos de Entrada (Vector BH) */}
+      <div className="rounded-xl overflow-hidden shadow-2xs border border-stone-200">
+        <BarraVectorHechos
+          hechos={vectorHechos}
+          onActualizarHechos={setVectorHechos}
+          sugerenciasVariables={variables.map((v) => v.nombre)}
+          ejecutando={isLoading || ejecutarInferencia.isPending}
+          totalReglas={reglas.length}
+        />
       </div>
 
       {/* Barra de Controles según el Modo */}

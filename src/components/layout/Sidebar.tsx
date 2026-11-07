@@ -15,6 +15,7 @@ import {
   History,
   GraduationCap,
   BookOpen,
+  PanelLeftClose,
 } from 'lucide-react';
 
 const PermissionLink = ({ permiso, ...props }: NavLinkProps & { permiso: string }) => {
@@ -25,9 +26,16 @@ const PermissionLink = ({ permiso, ...props }: NavLinkProps & { permiso: string 
 export interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  onClose,
+  isCollapsed = false,
+  onToggleCollapse,
+}) => {
   const { id } = useParams<{ id?: string }>();
   const location = useLocation();
   const puedeVerSistemas = usePuede(Permisos.SISTEMAS_VER);
@@ -56,23 +64,36 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       )}
 
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-40 w-64 bg-white border-r border-stone-200 flex flex-col transition-transform duration-200 ease-in-out lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed top-0 left-0 bottom-0 z-40 w-64 bg-white border-r border-stone-200 flex flex-col transition-all duration-300 ease-in-out shadow-xs ${
+          isCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'
+        } ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Brand / Logo */}
-        <div className="flex items-center gap-3 h-16 px-6 border-b border-stone-200">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-800 to-teal-950 text-teal-300 flex items-center justify-center shadow-md shadow-teal-950/15 border border-teal-700/30">
-            <Cpu className="w-5 h-5" />
+        <div className="flex items-center justify-between h-16 px-5 border-b border-stone-200">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-800 to-teal-950 text-teal-300 flex items-center justify-center shadow-md shadow-teal-950/15 border border-teal-700/30">
+              <Cpu className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold text-stone-900 text-base tracking-tight block font-serif">
+                SE-Docente
+              </span>
+              <span className="text-[11px] text-stone-500 font-medium block">
+                Sistemas Expertos v2.0
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="font-bold text-stone-900 text-base tracking-tight block font-serif">
-              SE-Docente
-            </span>
-            <span className="text-[11px] text-stone-500 font-medium block">
-              Sistemas Expertos v2.0
-            </span>
-          </div>
+          {onToggleCollapse && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="hidden lg:flex p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+              title="Ocultar barra lateral (Ctrl+B)"
+              aria-label="Ocultar barra lateral"
+            >
+              <PanelLeftClose className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Navigation */}

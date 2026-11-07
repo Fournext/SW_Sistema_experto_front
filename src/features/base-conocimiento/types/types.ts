@@ -101,6 +101,36 @@ export interface CrearVariableDTO {
   base_conocimiento?: number;
 }
 
+export interface CondicionItemInput {
+  variable_nombre?: string;
+  variable_id?: string | number | null;
+  hecho_id?: string | number | null;
+  operador: string;
+  valor_esperado: string;
+  tipo_dato?: TipoDato;
+  orden?: number;
+}
+
+export interface ConclusionItemInput {
+  variable_nombre?: string;
+  variable_resultante_id?: string | number | null;
+  hecho_resultante_id?: string | number | null;
+  valor_resultante: string;
+  tipo_dato?: TipoDato;
+}
+
+export interface CrearReglaCompletaDTO {
+  nombre: string;
+  prioridad?: number;
+  descripcion?: string;
+  factor_certeza?: number;
+  activa?: boolean;
+  condiciones: CondicionItemInput[];
+  conclusiones: ConclusionItemInput[];
+  posicion_x?: number;
+  posicion_y?: number;
+}
+
 export interface CrearReglaDTO {
   nombre: string;
   descripcion?: string;
