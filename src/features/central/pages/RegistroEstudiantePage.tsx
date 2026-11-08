@@ -16,10 +16,21 @@ export default function RegistroEstudiantePage() {
   const [complete, setComplete] = useState(false);
   const [error, setError] = useState('');
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<z.infer<typeof schema>>({ resolver: zodResolver(schema) });
-  const submit = handleSubmit(async ({ nombre, username, email, password }) => {
+  const submit = handleSubmit(async ({ nombre, username, email, password, confirmacion }) => {
     setError('');
-    try { await authService.registroEstudiante({ nombre, username, email, password }); setComplete(true); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo crear la cuenta.'); }
+    try {
+      await authService.registroEstudiante({
+        nombre,
+        nombre_completo: nombre,
+        username,
+        email,
+        password,
+        confirmar_password: confirmacion || password,
+      });
+      setComplete(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'No se pudo crear la cuenta.');
+    }
   });
   return <AuthLayout>{complete ? <div role="status"><CheckCircle2 size={45} className="mb-6 text-teal-700" /><h1 className="font-serif text-3xl">Tu cuenta está lista</h1><p className="my-5 text-sm leading-6 text-stone-500">Ya puedes ingresar con tu usuario y contraseña para acceder a tus actividades.</p><Link to={loginUrl} className="inline-flex rounded-xl bg-teal-800 px-6 py-3 text-sm font-semibold text-white">Continuar al inicio de sesión</Link></div> : <>
     <GraduationCap className="mb-5 text-teal-700" size={32} /><p className="text-xs uppercase tracking-[.2em] text-teal-700">Comienza a explorar</p><h1 className="mb-3 mt-3 font-serif text-4xl">Crea tu cuenta de estudiante</h1><p className="mb-7 text-sm text-stone-500">Aprende haciendo, a tu propio ritmo.</p>

@@ -1,7 +1,7 @@
 export type DificultadActividad = 'BASICA' | 'MEDIA' | 'AVANZADA';
 export type EstadoActividad = 'BORRADOR' | 'PUBLICADA' | 'INACTIVA';
-export type EstadoAsignacion = 'VIGENTE' | 'CERRADA';
-export type EstadoEntrega = 'PENDIENTE' | 'BORRADOR' | 'ENVIADA';
+export type EstadoAsignacion = 'VIGENTE' | 'CERRADA' | 'CANCELADA';
+export type EstadoEntrega = 'PENDIENTE' | 'BORRADOR' | 'ENVIADA' | 'CALIFICADA' | 'OBSERVADA';
 export type TipoActividad = 'ANALISIS_BC' | 'CREACION_BC';
 export interface PermisosActividad {
   ver_bc: boolean;
@@ -79,6 +79,10 @@ export interface EntregaActividad {
   ejecucion_inferencia_id?: string | null;
   ejecuciones_ids?: string[];
   fecha_envio?: string | null;
+  calificacion?: number | null;
+  calificada_en?: string | null;
+  calificada_por_id?: number | null;
+  calificada_por_nombre?: string | null;
   creada_en?: string;
   actualizada_en?: string;
   numero_revision?: number;
@@ -149,6 +153,8 @@ export interface ResumenEntregaDocente {
   entrega_id?: string | null;
   fecha_envio?: string | null;
   numero_revision?: number;
+  calificacion?: number | null;
+  calificada_en?: string | null;
 }
 export interface DetalleEntregaDocente extends EntregaActividad {
   revisiones: RevisionEntrega[];

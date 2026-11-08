@@ -23,6 +23,7 @@ import AsignarActividadModal from '../components/AsignarActividadModal';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Spinner from '@/components/ui/Spinner';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import type { ActividadEducativa, DatosActividad } from '../types/types';
 
 export const ActividadesDocentePage: React.FC<{ cursoId?: string; cursoArchivado?: boolean }> = ({ cursoId, cursoArchivado }) => {
@@ -43,6 +44,7 @@ export const ActividadesDocentePage: React.FC<{ cursoId?: string; cursoArchivado
 
   const [modalAsignarAbierto, setModalAsignarAbierto] = useState<boolean>(false);
   const [actividadParaAsignar, setActividadParaAsignar] = useState<ActividadEducativa | null>(null);
+  const [actividadParaEliminar, setActividadParaEliminar] = useState<ActividadEducativa | null>(null);
 
   const handleCrearEditarSubmit = async (values: DatosActividad) => {
     if (actividadEditar ? !puedeEditar : !puedeCrear) return;
@@ -65,11 +67,9 @@ export const ActividadesDocentePage: React.FC<{ cursoId?: string; cursoArchivado
     await asignarActividad.mutateAsync(datos);
   };
 
-  const handleDesactivar = async (id: string) => {
+  const handleDesactivar = (actividad: ActividadEducativa) => {
     if (!puedeEliminar) return;
-    if (window.confirm('¿Desea eliminar esta actividad educativa? Ya no estará visible en la biblioteca ni en los cursos.')) {
-      await desactivarActividad.mutateAsync(id);
-    }
+    setActividadParaEliminar(actividad);
   };
 
   return (
@@ -212,8 +212,8 @@ export const ActividadesDocentePage: React.FC<{ cursoId?: string; cursoArchivado
 
                     <Permiso permisos={[Permisos.ACTIVIDADES_ELIMINAR]}><button
                       type="button"
-                      onClick={() => handleDesactivar(act.id)}
-                      className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      onClick={() => handleDesactivar(act)}
+                      className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                       title="Eliminar actividad"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -251,6 +251,23 @@ export const ActividadesDocentePage: React.FC<{ cursoId?: string; cursoArchivado
         cursoInicialId={cursoId}
         onSubmit={handleAsignarSubmit}
         isLoading={asignarActividad.isPending}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(actividadParaEliminar)}
+        onClose={() => setActividadParaEliminar(null)}
+        onConfirm={async () => {
+          if (actividadParaEliminar) {
+            await desactivarActividad.mutateAsync(actividadParaEliminar.id);
+            setActividadParaEliminar(null);
+          }
+        }}
+        title="Eliminar actividad educativa"
+        message={`¿Deseas eliminar la actividad «${actividadParaEliminar?.titulo ?? ''}»? Ya no estará visible en la biblioteca ni en los cursos.`}
+        confirmText="Eliminar actividad"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={desactivarActividad.isPending}
       />
     </div>
   );

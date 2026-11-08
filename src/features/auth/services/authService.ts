@@ -12,15 +12,29 @@ authClient.interceptors.response.use(response => {
   return response;
 }, error => {
   const data = error.response?.data;
-  const detail = data?.detail || data?.message || data?.error;
-  const fields = data && typeof data === 'object'
-    ? Object.entries(data).flatMap(([field, value]) => {
+  let errorMsg = '';
+  if (data?.errors && typeof data.errors === 'object') {
+    const errorList = Object.entries(data.errors).flatMap(([field, value]) => {
       if (typeof value === 'string') return [`${field}: ${value}`];
       if (Array.isArray(value)) return [`${field}: ${value.join(' ')}`];
       return [];
-    }).join(' · ')
-    : '';
-  return Promise.reject(new Error(typeof detail === 'string' ? detail : fields || 'No se pudo completar la autenticación. Inténtalo nuevamente.'));
+    });
+    if (errorList.length > 0) {
+      errorMsg = errorList.join(' · ');
+    }
+  }
+  if (!errorMsg) {
+    const detail = data?.detail || data?.message || data?.error;
+    const fields = data && typeof data === 'object'
+      ? Object.entries(data).flatMap(([field, value]) => {
+        if (typeof value === 'string') return [`${field}: ${value}`];
+        if (Array.isArray(value)) return [`${field}: ${value.join(' ')}`];
+        return [];
+      }).join(' · ')
+      : '';
+    errorMsg = typeof detail === 'string' ? detail : fields || 'No se pudo completar la autenticación. Inténtalo nuevamente.';
+  }
+  return Promise.reject(new Error(errorMsg));
 });
 
 export const authService = {

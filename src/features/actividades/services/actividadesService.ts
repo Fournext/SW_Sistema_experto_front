@@ -167,6 +167,14 @@ export const actividadesService = {
   async reabrirEntrega(id: string, fecha_limite?: string | null): Promise<EntregaActividad> {
     return unwrapData<EntregaActividad>((await httpClient.post(`/entregas/${id}/reabrir/`, { fecha_limite })).data);
   },
+  async calificarEntrega(id: string, datos: { calificacion: number; comentario?: string }): Promise<EntregaActividad> {
+    return unwrapData<EntregaActividad>((await httpClient.post(`/entregas/${id}/calificar/`, datos)).data);
+  },
+  async asociarSistema(asignacionId: string, sistemaId: string): Promise<{ sistema_trabajo_id: string; sistema_origen_id: string }> {
+    return unwrapData<{ sistema_trabajo_id: string; sistema_origen_id: string }>(
+      (await httpClient.post(`/asignaciones/${asignacionId}/asociar-sistema/`, { sistema_id: sistemaId })).data
+    );
+  },
   async actualizarAsignacion(id: string, datos: { fecha_limite?: string | null; estado?: string }): Promise<AsignacionActividad> {
     return unwrapData<AsignacionActividad>((await httpClient.patch(`/asignaciones/${id}/`, datos)).data);
   },

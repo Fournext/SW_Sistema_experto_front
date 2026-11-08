@@ -11,9 +11,12 @@ export interface AuthUser {
 export interface AuthTokens { access: string; refresh: string }
 export interface LoginResponse extends AuthTokens { user: AuthUser }
 export interface RegistroEstudianteData {
-  nombre: string;
+  nombre?: string;
+  nombre_completo?: string;
   username: string;
   email: string;
   password: string;
+  confirmar_password?: string;
   password_confirm?: string;
+  confirmacion?: string;
 }
