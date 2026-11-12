@@ -170,9 +170,7 @@ export const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId
   const {
     eliminando,
     sincronizando,
-    vistaModo,
     guardandoPosicionesRef,
-    handleCambiarVistaModo,
     onConnect,
     onReconnect,
     onEdgesDelete,
@@ -338,8 +336,6 @@ export const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId
         <EditorToolbar
           modoEditor={modoEditor}
           onChangeModoEditor={setModoEditor}
-          vistaModo={vistaModo}
-          onChangeVistaModo={handleCambiarVistaModo}
           onAgregarNodo={handleAgregarNodo}
           onGuardarPosiciones={handleGuardarPosiciones}
           onCentrarVista={() => fitView({ padding: 0.2 })}

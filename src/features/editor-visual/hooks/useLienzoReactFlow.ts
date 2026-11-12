@@ -10,7 +10,7 @@ import baseConocimientoService from '@/features/base-conocimiento/services/baseC
 import type { Hecho, Regla, Variable } from '@/features/base-conocimiento/types/types';
 import editorVisualService from '../services/editorVisualService';
 import type { FlowEdge, FlowNode, TipoNodo } from '../types/types';
-import { construirGrafoBaseConocimiento, type ModoVistaLienzo } from '../utils/grafoBaseConocimiento';
+import { construirGrafoBaseConocimiento } from '../utils/grafoBaseConocimiento';
 import type { EstadoInferenciaRegla } from './useSimuladorWorkflowFWC';
 
 interface UseLienzoReactFlowParams {
@@ -77,15 +77,6 @@ export function useLienzoReactFlow({
   const guardandoPosicionesRef = useRef(false);
   const [sincronizando, setSincronizando] = useState(false);
   const yaInicializadoRef = useRef(false);
-  const [vistaModo, setVistaModo] = useState<ModoVistaLienzo>('SIMPLIFICADA');
-
-  const handleCambiarVistaModo = useCallback(
-    (nuevoModo: ModoVistaLienzo) => {
-      setVistaModo(nuevoModo);
-      setTimeout(() => fitViewRef.current({ padding: 0.2 }), 250);
-    },
-    [fitViewRef]
-  );
 
   // Sincronización automática de la Base de Conocimiento al entrar a la vista o actualizar datos
   useEffect(() => {
@@ -95,8 +86,9 @@ export function useLienzoReactFlow({
 
       try {
         const saved =
-          localStorage.getItem(`editor_pos_v2_${sistemaId}_${vistaModo}`) ||
-          localStorage.getItem(`editor_pos_${sistemaId}_${vistaModo}`);
+          localStorage.getItem(`editor_pos_v2_${sistemaId}`) ||
+          localStorage.getItem(`editor_pos_v2_${sistemaId}_SIMPLIFICADA`) ||
+          localStorage.getItem(`editor_pos_${sistemaId}`);
         if (saved) {
           const parsed = JSON.parse(saved);
           let tieneInversion = false;
@@ -135,8 +127,7 @@ export function useLienzoReactFlow({
         reglas,
         posicionesGuardadas,
         savedEdgePoints,
-        nodosVisuales,
-        vistaModo
+        nodosVisuales
       );
 
       setNodes((actuales) => {
@@ -176,7 +167,6 @@ export function useLienzoReactFlow({
     sistemaId,
     eliminando,
     estadosInferencia,
-    vistaModo,
     setNodes,
     setEdges,
     fitViewRef,
@@ -535,8 +525,9 @@ export function useLienzoReactFlow({
       let savedEdgePoints: Record<string, { x: number; y: number }> = {};
       try {
         const saved =
-          localStorage.getItem(`editor_pos_v2_${sistemaId}_${vistaModo}`) ||
-          localStorage.getItem(`editor_pos_${sistemaId}_${vistaModo}`);
+          localStorage.getItem(`editor_pos_v2_${sistemaId}`) ||
+          localStorage.getItem(`editor_pos_v2_${sistemaId}_SIMPLIFICADA`) ||
+          localStorage.getItem(`editor_pos_${sistemaId}`);
         if (saved) posicionesGuardadas = JSON.parse(saved);
         const savedEdges = localStorage.getItem(`editor_edges_v2_${sistemaId}`);
         if (savedEdges) savedEdgePoints = JSON.parse(savedEdges);
@@ -550,8 +541,7 @@ export function useLienzoReactFlow({
         r,
         posicionesGuardadas,
         savedEdgePoints,
-        resEditor.data?.backendData?.nodos,
-        vistaModo
+        resEditor.data?.backendData?.nodos
       );
 
       setNodes(nuevosNodos);
@@ -564,7 +554,6 @@ export function useLienzoReactFlow({
     }
   }, [
     sistemaId,
-    vistaModo,
     refetchBase,
     refetchEditorVisual,
     refetchHechos,
@@ -596,7 +585,6 @@ export function useLienzoReactFlow({
         }
       }
 
-      localStorage.setItem(`editor_pos_v2_${sistemaId}_${vistaModo}`, JSON.stringify(posMap));
       localStorage.setItem(`editor_pos_v2_${sistemaId}`, JSON.stringify(posMap));
       localStorage.setItem(`editor_edges_v2_${sistemaId}`, JSON.stringify(edgeControlPoints));
 
@@ -645,7 +633,7 @@ export function useLienzoReactFlow({
       guardandoPosicionesRef.current = false;
       setGuardando(false);
     }
-  }, [puedeEditarNodos, nodes, edges, sistemaId, vistaModo, setGuardando, setNodes, refetchEditorVisual]);
+  }, [puedeEditarNodos, nodes, edges, sistemaId, setGuardando, setNodes, refetchEditorVisual]);
 
   const handleReorganizarGrafo = useCallback(() => {
     if (!puedeEditarNodos) return;
@@ -658,13 +646,12 @@ export function useLienzoReactFlow({
       reglas,
       {},
       {},
-      undefined,
-      vistaModo
+      undefined
     );
     setNodes(nuevosNodos);
     setEdges(nuevasEdges);
     setTimeout(() => fitView({ padding: 0.2 }), 200);
-  }, [puedeEditarNodos, sistemaId, hechos, variables, reglas, vistaModo, setNodes, setEdges, fitView]);
+  }, [puedeEditarNodos, sistemaId, hechos, variables, reglas, setNodes, setEdges, fitView]);
 
   const handleSeleccionarRegla = useCallback(
     (reglaId: string | number) => {
@@ -682,9 +669,7 @@ export function useLienzoReactFlow({
   return {
     eliminando,
     sincronizando,
-    vistaModo,
     guardandoPosicionesRef,
-    handleCambiarVistaModo,
     onNodeClick,
     onPaneClick,
     onConnect,
