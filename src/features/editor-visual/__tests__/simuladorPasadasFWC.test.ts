@@ -291,5 +291,90 @@ describe('Simulador FWC por Pasadas Pedagógicas (Ejemplo del Cuaderno)', () => 
     const pasosP3 = pasos.filter((p) => p.pasadaNumero === 3);
     expect(pasosP3.find((p) => p.reglaNombre === 'R1')?.estado).toBe('EJECUTADA');
   });
+
+  it('soporta Early Stopping con 1 Meta y Vector de Metas (Pseudocódigo del Alumno)', () => {
+    const reglas = [
+      {
+        id: 'r1',
+        nombre: 'R1',
+        condiciones: [{ sujeto: 'X', operador: '=', valor_esperado: '0' }],
+        conclusiones: [{ variable_nombre: 'P', valor_resultante: 'a' }],
+      },
+      {
+        id: 'r2',
+        nombre: 'R2',
+        condiciones: [{ sujeto: 'P', operador: '=', valor_esperado: 'a' }],
+        conclusiones: [{ variable_nombre: 'C', valor_resultante: 'b' }],
+      },
+      {
+        id: 'r3',
+        nombre: 'R3',
+        condiciones: [{ sujeto: 'C', operador: '=', valor_esperado: 'b' }],
+        conclusiones: [{ variable_nombre: 'Z', valor_resultante: '99' }],
+      },
+    ];
+
+    const todasUnificadas = (bh: Array<{ nombre: string; valor: string }>, metas: string[]) => {
+      if (!metas || metas.length === 0) return false;
+      return metas.every((m) => bh.some((h) => h.nombre.toLowerCase() === m.toLowerCase() && h.valor));
+    };
+
+    // Caso A: Meta única = ["P"]
+    let bhActual = [{ nombre: 'X', valor: '0' }];
+    const reglasMarcadas = new Set<string>();
+    const metasA = ['P'];
+    let reglasEvaluadas = 0;
+
+    for (const regla of reglas) {
+      if (!reglasMarcadas.has(regla.id)) {
+        const cumple = regla.condiciones.every((c) => bhActual.some((h) => h.nombre === c.sujeto && h.valor === c.valor_esperado));
+        reglasEvaluadas++;
+        if (cumple) {
+          reglasMarcadas.add(regla.id);
+          bhActual.push({ nombre: regla.conclusiones[0].variable_nombre, valor: regla.conclusiones[0].valor_resultante });
+          if (todasUnificadas(bhActual, metasA)) {
+            break; // Parada temprana: break del for
+          }
+        }
+      }
+    }
+
+    // Se detuvo en R1 porque P ya unificó
+    expect(bhActual.some((h) => h.nombre === 'P' && h.valor === 'a')).toBe(true);
+    expect(reglasMarcadas.has('r1')).toBe(true);
+    expect(reglasMarcadas.has('r2')).toBe(false);
+    expect(reglasEvaluadas).toBe(1);
+
+    // Caso B: Vector de Metas = ["P", "C"]
+    bhActual = [{ nombre: 'X', valor: '0' }];
+    reglasMarcadas.clear();
+    const metasB = ['P', 'C'];
+    let paradaTemprana = false;
+
+    while (true) {
+      let huboDisparo = false;
+      for (const regla of reglas) {
+        if (!reglasMarcadas.has(regla.id)) {
+          const cumple = regla.condiciones.every((c) => bhActual.some((h) => h.nombre === c.sujeto && h.valor === c.valor_esperado));
+          if (cumple) {
+            huboDisparo = true;
+            reglasMarcadas.add(regla.id);
+            bhActual.push({ nombre: regla.conclusiones[0].variable_nombre, valor: regla.conclusiones[0].valor_resultante });
+            if (todasUnificadas(bhActual, metasB)) {
+              paradaTemprana = true;
+              break;
+            }
+          }
+        }
+      }
+      if (paradaTemprana || !huboDisparo) break;
+    }
+
+    // R1 y R2 dispararon; R3 jamás disparó
+    expect(reglasMarcadas.has('r1')).toBe(true);
+    expect(reglasMarcadas.has('r2')).toBe(true);
+    expect(reglasMarcadas.has('r3')).toBe(false);
+    expect(todasUnificadas(bhActual, metasB)).toBe(true);
+  });
 });
 

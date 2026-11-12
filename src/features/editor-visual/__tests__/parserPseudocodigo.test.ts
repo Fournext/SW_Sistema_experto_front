@@ -109,5 +109,23 @@ describe('parserPseudocodigo', () => {
     expect(generado).toContain('SI X = 0');
     expect(generado).toContain('ENTONCES P = a');
   });
+
+  it('parsea correctamente premisas complejas con OR, AND y paréntesis', () => {
+    const codigo = `
+      R1: IF (A=b AND B=0) OR P>10 THEN resultado = 'aprobado'
+      R2: IF (A=b AND B=0) OR (P>10 AND P<100) THEN resultado = 'valido'
+    `;
+
+    const res = parsearPseudocodigo(codigo);
+    expect(res.exito).toBe(true);
+    expect(res.reglas).toHaveLength(2);
+
+    expect(res.reglas[0].nombre).toBe('R1');
+    expect(res.reglas[0].expresion_logica).toBe('(A=b AND B=0) OR P>10');
+    expect(res.reglas[0].condiciones.length).toBeGreaterThanOrEqual(3);
+
+    expect(res.reglas[1].nombre).toBe('R2');
+    expect(res.reglas[1].expresion_logica).toBe('(A=b AND B=0) OR (P>10 AND P<100)');
+  });
 });
 

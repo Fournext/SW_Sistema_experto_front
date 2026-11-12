@@ -15,6 +15,7 @@ export interface ReglaParseada {
   nombre: string;
   prioridad: number;
   descripcion?: string;
+  expresion_logica?: string;
   condiciones: CondicionParseada[];
   conclusiones: ConclusionParseada[];
   lineaInicio: number;
@@ -68,7 +69,9 @@ export function generarPseudocodigo(reglas: Regla[], variablesExistentes?: Varia
     lineas.push(`${nombre} [Prioridad: ${prioridad}]:`);
 
     // Premisas / Condiciones
-    if (r.condiciones && r.condiciones.length > 0) {
+    if (r.expresion_logica && r.expresion_logica.trim()) {
+      lineas.push(`  SI ${r.expresion_logica.trim()}`);
+    } else if (r.condiciones && r.condiciones.length > 0) {
       const condsStr = r.condiciones
         .map((c) => {
           const varNombre =
@@ -187,18 +190,35 @@ export function parsearPseudocodigo(codigo: string): ResultadoParseo {
 
     // Procesar condiciones acumuladas
     const condiciones: CondicionParseada[] = [];
+    let expresionLogica: string | undefined = undefined;
+
     if (condicionesTexto.trim()) {
-      // Dividir por Y / AND / && o comas
-      const partesCond = condicionesTexto.split(/\s+(?:Y|AND|&&)\s+|,\s*/i);
-      for (const p of partesCond) {
-        const c = parsearCondicion(p);
-        if (c) {
-          condiciones.push(c);
-        } else if (p.trim()) {
-          errores.push({
-            linea: lineaInicioRegla,
-            mensaje: `En ${reglaActual.nombre}: No se pudo interpretar la condición "${p.trim()}".`,
-          });
+      const tieneLogicaCompleja = /(?:[\(\)]|\b(?:OR|O|\|\|)\b)/i.test(condicionesTexto);
+      if (tieneLogicaCompleja) {
+        expresionLogica = condicionesTexto.trim();
+        // Extraer átomos eliminando paréntesis y conectores lógicos
+        const partesCond = condicionesTexto
+          .replace(/[\(\)]/g, ' ')
+          .split(/\s+(?:Y|AND|&&|O|OR|\|\|)\s+|,\s*/i);
+        for (const p of partesCond) {
+          const c = parsearCondicion(p);
+          if (c) {
+            condiciones.push(c);
+          }
+        }
+      } else {
+        // Dividir por Y / AND / && o comas
+        const partesCond = condicionesTexto.split(/\s+(?:Y|AND|&&)\s+|,\s*/i);
+        for (const p of partesCond) {
+          const c = parsearCondicion(p);
+          if (c) {
+            condiciones.push(c);
+          } else if (p.trim()) {
+            errores.push({
+              linea: lineaInicioRegla,
+              mensaje: `En ${reglaActual.nombre}: No se pudo interpretar la condición "${p.trim()}".`,
+            });
+          }
         }
       }
     }
@@ -238,6 +258,7 @@ export function parsearPseudocodigo(codigo: string): ResultadoParseo {
       nombre: reglaActual.nombre,
       prioridad: reglaActual.prioridad ?? 10,
       descripcion: reglaActual.descripcion || '',
+      expresion_logica: expresionLogica,
       condiciones,
       conclusiones,
       lineaInicio: lineaInicioRegla,

@@ -129,6 +129,10 @@ export interface EjecucionInferencia {
   total_reglas_evaluadas?: number;
   total_reglas_activadas?: number;
   tiempo_ejecucion_ms?: number;
+  metas_solicitadas?: string[];
+  metas_unificadas?: Record<string, unknown>;
+  metas_pendientes?: string[];
+  motivo_parada?: string;
 }
 
 export type ModoAvanceSimulacion = 'POR_REGLA' | 'COMPLETO';
@@ -136,4 +140,5 @@ export type ModoAvanceSimulacion = 'POR_REGLA' | 'COMPLETO';
 export interface IniciarInferenciaDTO {
   hechos_iniciales?: Array<{ nombre: string; valor: string | boolean | number; factor_certeza?: number }>;
   modo?: string;
+  metas?: string[];
 }

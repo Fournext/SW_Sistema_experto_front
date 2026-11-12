@@ -46,6 +46,7 @@ import Spinner from '@/components/ui/Spinner';
 import ErrorMessage from '@/components/feedback/ErrorMessage';
 import Button from '@/components/ui/Button';
 import { construirGrafoBaseConocimiento, type ModoVistaLienzo } from '../utils/grafoBaseConocimiento';
+import { evaluarExpresionLogica } from '../utils/evaluadorLogicaPremisas';
 import type { TipoNodo, FlowNode, FlowEdge, NodoDatosGenerales } from '../types/types';
 import type { TipoDato, CondicionItemInput, ConclusionItemInput } from '@/features/base-conocimiento/types/types';
 
@@ -182,6 +183,7 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
   const [pasoActualWorkflowIndex, setPasoActualWorkflowIndex] = useState(0);
   const [modoEjecucionWorkflow, setModoEjecucionWorkflow] = useState<'DIRECTO' | 'PASO_A_PASO'>('PASO_A_PASO');
   const [conclusionFinalWorkflow, setConclusionFinalWorkflow] = useState<string | null>(null);
+  const [metasFWC, setMetasFWC] = useState<string[]>([]);
 
   // Inicializar vector de hechos una sola vez al cargar hechos de la BC
   useEffect(() => {
@@ -967,9 +969,20 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
     (
       _ejecucion: any,
       vectorIni: HechoVectorItem[],
-      todasLasReglas: typeof reglas
+      todasLasReglas: typeof reglas,
+      metasObjetivo: string[] = []
     ): PasoWorkflow[] => {
       const pasos: PasoWorkflow[] = [];
+
+      // Función auxiliar pedagógica: verifica si todas las metas del vector están unificadas en la BH
+      const todasUnificadas = (bh: HechoVectorItem[], listaMetas: string[]): boolean => {
+        if (!listaMetas || listaMetas.length === 0) return false;
+        return listaMetas.every((m) => {
+          const limpia = m.trim().toLowerCase();
+          const enBh = bh.find((h) => h.nombre && h.nombre.trim().toLowerCase() === limpia);
+          return enBh !== undefined && enBh.valor !== undefined && String(enBh.valor).trim() !== '';
+        });
+      };
 
       // Mapa auxiliar para resolver nombres de variables y hechos por ID
       const idToName = new Map<string, string>();
@@ -1001,16 +1014,38 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
         if (h.nombre) origenPorHecho.set(h.nombre.toLowerCase(), 'Vector BH Inicial (Cliente)');
       });
 
+      // Si las metas ya estaban satisfechas desde el vector inicial
+      if (metasObjetivo.length > 0 && todasUnificadas(bhActual, metasObjetivo)) {
+        pasos.push({
+          pasoNumero: 1,
+          vueltaNumero: 1,
+          pasadaNumero: 1,
+          tipoPaso: 'CIERRE_PASADA',
+          reglaId: '',
+          reglaNombre: 'Metas ya unificadas en Base de Hechos Inicial',
+          prioridad: 0,
+          estado: 'CIERRE_PASADA',
+          condicionesEvaluadas: [],
+          nuevosHechosPasada: [],
+          reglasMarcadas: [],
+          bhInicioPasada: [...bhActual],
+          memoriaTrabajoSnapshot: [...bhActual],
+          metasAlcanzadas: true,
+        });
+        return pasos;
+      }
+
       const reglasMarcadas = new Set<string>(); // IDs de reglas que ya dispararon
       const reglasMarcadasNombres: string[] = []; // Nombres de reglas para el hito
 
       let pasadaNumero = 1;
       let pasoContador = 1;
       let contradiccionGlobal: ContradiccionPaso | undefined = undefined;
+      let metasAlcanzadasGlobal = false;
 
       const MAX_PASADAS = 25; // Límite de seguridad pedagógico
 
-      while (pasadaNumero <= MAX_PASADAS && !contradiccionGlobal) {
+      while (pasadaNumero <= MAX_PASADAS && !contradiccionGlobal && !metasAlcanzadasGlobal) {
         // La Base de Hechos con la que se evalúa toda la pasada está CONGELADA al inicio de la pasada
         const bhInicioPasada = [...bhActual];
         let huboDisparoEnPasada = false;
@@ -1043,42 +1078,62 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           }
 
           // 2. Evaluar condiciones contra la Base de Hechos viva (actualizada inmediatamente con deducciones previas)
-          const conds = (reglaObj.condiciones || []).map((c: any) => {
-            let sujeto = String(c.variable_nombre || c.referencia || c.sujeto || '').trim();
-            if (!sujeto && c.variable_id) sujeto = idToName.get(String(c.variable_id)) || '';
-            if (!sujeto && c.hecho_id) sujeto = idToName.get(String(c.hecho_id)) || '';
-            if (!sujeto && typeof c.variable === 'object' && c.variable) sujeto = String(c.variable.nombre || '').trim();
-            if (!sujeto && (c.variable || c.nombre)) sujeto = String(c.variable || c.nombre).trim();
+          let todasCumplen = false;
+          let conds: any[] = [];
 
-            const operador = c.operador || '=';
-            const valorEsperado = String(c.valor_esperado ?? c.valor ?? '').trim();
+          if (reglaObj.expresion_logica && reglaObj.expresion_logica.trim()) {
+            const memoriaRecord: Record<string, any> = {};
+            bhActual.forEach((h) => {
+              if (h.nombre) memoriaRecord[h.nombre] = h.valor;
+            });
+            todasCumplen = evaluarExpresionLogica(reglaObj.expresion_logica, memoriaRecord);
+            conds = [
+              {
+                sujeto: reglaObj.expresion_logica,
+                operador: 'EXP',
+                valorEsperado: 'true',
+                valorEnBH: todasCumplen ? 'true' : 'false',
+                cumple: todasCumplen,
+              },
+            ];
+          } else {
+            conds = (reglaObj.condiciones || []).map((c: any) => {
+              let sujeto = String(c.variable_nombre || c.referencia || c.sujeto || '').trim();
+              if (!sujeto && c.variable_id) sujeto = idToName.get(String(c.variable_id)) || '';
+              if (!sujeto && c.hecho_id) sujeto = idToName.get(String(c.hecho_id)) || '';
+              if (!sujeto && typeof c.variable === 'object' && c.variable) sujeto = String(c.variable.nombre || '').trim();
+              if (!sujeto && (c.variable || c.nombre)) sujeto = String(c.variable || c.nombre).trim();
 
-            // Buscar en la Base de Hechos viva
-            const hechoEnBH = bhActual.find(
-              (h) => sujeto && h.nombre.toLowerCase() === sujeto.toLowerCase()
-            );
-            const valorEnBH = hechoEnBH?.valor;
+              const operador = c.operador || '=';
+              const valorEsperado = String(c.valor_esperado ?? c.valor ?? '').trim();
 
-            let cumple = false;
-            if (valorEnBH !== undefined) {
-              if (operador === '=') cumple = String(valorEnBH).toLowerCase() === valorEsperado.toLowerCase();
-              else if (operador === '!=') cumple = String(valorEnBH).toLowerCase() !== valorEsperado.toLowerCase();
-              else if (operador === '>') cumple = Number(valorEnBH) > Number(valorEsperado);
-              else if (operador === '<') cumple = Number(valorEnBH) < Number(valorEsperado);
-              else if (operador === '>=') cumple = Number(valorEnBH) >= Number(valorEsperado);
-              else if (operador === '<=') cumple = Number(valorEnBH) <= Number(valorEsperado);
-            }
+              // Buscar en la Base de Hechos viva
+              const hechoEnBH = bhActual.find(
+                (h) => sujeto && h.nombre.toLowerCase() === sujeto.toLowerCase()
+              );
+              const valorEnBH = hechoEnBH?.valor;
 
-            return {
-              sujeto,
-              operador,
-              valorEsperado,
-              valorEnBH,
-              cumple,
-            };
-          });
+              let cumple = false;
+              if (valorEnBH !== undefined) {
+                if (operador === '=') cumple = String(valorEnBH).toLowerCase() === valorEsperado.toLowerCase();
+                else if (operador === '!=') cumple = String(valorEnBH).toLowerCase() !== valorEsperado.toLowerCase();
+                else if (operador === '>') cumple = Number(valorEnBH) > Number(valorEsperado);
+                else if (operador === '<') cumple = Number(valorEnBH) < Number(valorEsperado);
+                else if (operador === '>=') cumple = Number(valorEnBH) >= Number(valorEsperado);
+                else if (operador === '<=') cumple = Number(valorEnBH) <= Number(valorEsperado);
+              }
 
-          const todasCumplen = conds.length > 0 && conds.every((c) => c.cumple);
+              return {
+                sujeto,
+                operador,
+                valorEsperado,
+                valorEnBH,
+                cumple,
+              };
+            });
+
+            todasCumplen = conds.length > 0 && conds.every((c) => c.cumple);
+          }
 
           if (todasCumplen) {
             // La regla dispara y queda marcada
@@ -1137,6 +1192,13 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
               origenPorHecho.set(clave, `Regla ${rNombre}`);
             }
 
+            // Verificar si todas las metas han quedado unificadas con este disparo (Early Stopping)
+            let metasAlcanzadasEnEstePaso = false;
+            if (metasObjetivo.length > 0 && todasUnificadas(bhActual, metasObjetivo)) {
+              metasAlcanzadasEnEstePaso = true;
+              metasAlcanzadasGlobal = true;
+            }
+
             pasos.push({
               pasoNumero: pasoContador++,
               vueltaNumero: pasadaNumero,
@@ -1152,10 +1214,11 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
               bhInicioPasada: [...bhInicioPasada],
               memoriaTrabajoSnapshot: [...bhActual],
               contradiccion: pasoContradiccion,
+              metasAlcanzadas: metasAlcanzadasEnEstePaso,
             });
 
-            // Si se detecta contradicción, detenemos la evaluación de la pasada
-            if (pasoContradiccion) {
+            // Si se detecta contradicción o se unificaron todas las metas, detenemos la pasada inmediatamente (break)
+            if (pasoContradiccion || metasAlcanzadasEnEstePaso) {
               break;
             }
           } else {
@@ -1196,8 +1259,8 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
           contradiccion: contradiccionGlobal,
         });
 
-        if (contradiccionGlobal) {
-          // Si hubo contradicción, la inferencia se detiene
+        if (contradiccionGlobal || metasAlcanzadasGlobal) {
+          // Si hubo contradicción o se alcanzaron todas las metas, la inferencia se detiene
           break;
         }
 
@@ -1274,9 +1337,10 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
 
       const ejecucion = await inferenciaService.ejecutar(sistemaId, {
         hechos_iniciales: payloadHechos,
+        metas: metasFWC.length > 0 ? metasFWC : undefined,
       });
 
-      const pasosConstruidos = construirPasosWorkflow(ejecucion, vectorHechos, reglas);
+      const pasosConstruidos = construirPasosWorkflow(ejecucion, vectorHechos, reglas, metasFWC);
       setPasosWorkflow(pasosConstruidos);
       setConclusionFinalWorkflow(ejecucion.conclusion_final || null);
 
@@ -1325,9 +1389,10 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
 
       const ejecucion = await inferenciaService.ejecutar(sistemaId, {
         hechos_iniciales: payloadHechos,
+        metas: metasFWC.length > 0 ? metasFWC : undefined,
       });
 
-      const pasosConstruidos = construirPasosWorkflow(ejecucion, vectorHechos, reglas);
+      const pasosConstruidos = construirPasosWorkflow(ejecucion, vectorHechos, reglas, metasFWC);
       setPasosWorkflow(pasosConstruidos);
       setConclusionFinalWorkflow(ejecucion.conclusion_final || null);
 
@@ -1989,6 +2054,9 @@ const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId }) => 
               conclusionFinal={conclusionFinalWorkflow}
               modoEjecucion={modoEjecucionWorkflow}
               onCambiarModoEjecucion={setModoEjecucionWorkflow}
+              metas={metasFWC}
+              onMetasChange={setMetasFWC}
+              variablesDisponibles={variables.map((v) => ({ id: String(v.id), nombre: v.nombre }))}
             />
           </div>
         )}

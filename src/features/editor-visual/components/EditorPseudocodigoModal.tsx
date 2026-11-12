@@ -242,6 +242,7 @@ export const EditorPseudocodigoModal: React.FC<EditorPseudocodigoModalProps> = (
             prioridad: rParseada.prioridad,
             descripcion: rParseada.descripcion || undefined,
             activa: true,
+            expresion_logica: rParseada.expresion_logica,
             condiciones: condsPayload,
             conclusiones: concsPayload,
           });
@@ -252,6 +253,7 @@ export const EditorPseudocodigoModal: React.FC<EditorPseudocodigoModalProps> = (
             prioridad: rParseada.prioridad,
             descripcion: rParseada.descripcion || undefined,
             activa: true,
+            expresion_logica: rParseada.expresion_logica,
             condiciones: condsPayload,
             conclusiones: concsPayload,
           });

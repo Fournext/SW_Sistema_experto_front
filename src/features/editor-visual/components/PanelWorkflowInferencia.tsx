@@ -17,6 +17,7 @@ import {
   Lock,
   BookmarkCheck,
   CheckCheck,
+  X,
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import type { HechoVectorItem } from '@/features/inferencia/components/BarraVectorHechos';
@@ -57,6 +58,9 @@ export interface PasoWorkflow {
   bhInicioPasada?: HechoVectorItem[];
   memoriaTrabajoSnapshot: HechoVectorItem[];
   contradiccion?: ContradiccionPaso;
+  metasAlcanzadas?: boolean;
+  metasUnificadas?: Record<string, string>;
+  metasPendientes?: string[];
 }
 
 export interface PanelWorkflowInferenciaProps {
@@ -71,6 +75,9 @@ export interface PanelWorkflowInferenciaProps {
   conclusionFinal?: string | null;
   modoEjecucion: 'DIRECTO' | 'PASO_A_PASO';
   onCambiarModoEjecucion: (modo: 'DIRECTO' | 'PASO_A_PASO') => void;
+  metas?: string[];
+  onMetasChange?: (metas: string[]) => void;
+  variablesDisponibles?: Array<{ id: string; nombre: string }>;
 }
 
 export const PanelWorkflowInferencia: React.FC<PanelWorkflowInferenciaProps> = ({
@@ -85,6 +92,9 @@ export const PanelWorkflowInferencia: React.FC<PanelWorkflowInferenciaProps> = (
   conclusionFinal,
   modoEjecucion,
   onCambiarModoEjecucion,
+  metas = [],
+  onMetasChange,
+  variablesDisponibles = [],
 }) => {
   const [panelMinimizado, setPanelMinimizado] = useState(false);
 
@@ -175,6 +185,71 @@ export const PanelWorkflowInferencia: React.FC<PanelWorkflowInferenciaProps> = (
 
       {!panelMinimizado && (
         <div className="p-4 space-y-4">
+          {/* Barra de Metas Objetivo (Early Stopping) */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                <Target className="w-4 h-4 text-teal-600" />
+                <span>Metas FWC (Parada Temprana):</span>
+                {metas.length === 0 ? (
+                  <span className="text-[11px] font-normal text-slate-500">
+                    Modo Exhaustivo (Sin metas definidas)
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200">
+                    {metas.length} meta{metas.length > 1 ? 's' : ''} activa{metas.length > 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+              {onMetasChange && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {variablesDisponibles
+                    .filter((v) => !metas.includes(v.nombre))
+                    .slice(0, 6)
+                    .map((v) => (
+                      <button
+                        key={v.id || v.nombre}
+                        type="button"
+                        onClick={() => onMetasChange([...metas, v.nombre])}
+                        className="text-[10px] px-2 py-0.5 rounded bg-white hover:bg-teal-50 text-slate-700 hover:text-teal-900 border border-slate-200 transition-colors cursor-pointer"
+                        title={`Agregar '${v.nombre}' como meta`}
+                      >
+                        + {v.nombre}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {metas.length > 0 && onMetasChange && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                {metas.map((m) => (
+                  <span
+                    key={m}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-teal-100 text-teal-900 border border-teal-300"
+                  >
+                    🎯 {m}
+                    <button
+                      type="button"
+                      onClick={() => onMetasChange(metas.filter((item) => item !== m))}
+                      className="text-teal-700 hover:text-teal-950 rounded-full p-0.5 hover:bg-teal-200 cursor-pointer"
+                      title="Quitar meta"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => onMetasChange([])}
+                  className="text-[10px] text-slate-500 hover:text-rose-600 underline cursor-pointer ml-1"
+                >
+                  Limpiar metas
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Barra de Controles de Simulación */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
             {modoEjecucion === 'DIRECTO' ? (
@@ -545,6 +620,19 @@ export const PanelWorkflowInferencia: React.FC<PanelWorkflowInferenciaProps> = (
                         </span>
                       )}
                     </div>
+
+                    {/* Banner de Metas Alcanzadas (Parada Temprana FWC) */}
+                    {pasoActual.metasAlcanzadas && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-emerald-950 text-xs space-y-1 shadow-2xs">
+                        <div className="flex items-center gap-1.5 font-bold text-emerald-800">
+                          <Target className="w-4 h-4 text-emerald-600" />
+                          <span>¡TODAS LAS METAS UNIFICADAS! (Parada Temprana FWC)</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-900 leading-relaxed">
+                          El motor detiene la inferencia inmediatamente tras este paso al verificar que las metas objetivo ya están en la Base de Hechos.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Banner detallado si se detecta contradicción en este paso */}
                     {pasoActual.contradiccion && (

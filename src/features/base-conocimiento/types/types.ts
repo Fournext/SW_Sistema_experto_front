@@ -63,6 +63,7 @@ export interface Regla {
   prioridad: number;
   factor_certeza: number | string;
   activa: boolean;
+  expresion_logica?: string | null;
   condiciones?: Condicion[];
   conclusiones?: Conclusion[];
   base_conocimiento?: number | string;
@@ -125,6 +126,7 @@ export interface CrearReglaCompletaDTO {
   descripcion?: string;
   factor_certeza?: number;
   activa?: boolean;
+  expresion_logica?: string;
   condiciones: CondicionItemInput[];
   conclusiones: ConclusionItemInput[];
   posicion_x?: number;
