@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { evaluarExpresionLogica } from '../utils/evaluadorLogicaPremisas';
+import {
+  evaluarExpresionLogica,
+  extraerAtomosDeExpresion,
+  validarSintaxisExpresionLogica,
+} from '../utils/evaluadorLogicaPremisas';
 
 describe('evaluadorLogicaPremisas', () => {
   it('evalúa correctamente (A=b AND B=0) OR P>10', () => {
@@ -30,6 +34,22 @@ describe('evaluadorLogicaPremisas', () => {
     const exprNot = 'NOT (A=b) AND P>10';
     expect(evaluarExpresionLogica(exprNot, { A: 'c', P: 20 })).toBe(true);
     expect(evaluarExpresionLogica(exprNot, { A: 'b', P: 20 })).toBe(false);
+  });
+
+  it('extrae átomos de condiciones individuales de expresiones complejas', () => {
+    const expr = '(A=b AND B=0) OR P>10';
+    const atomos = extraerAtomosDeExpresion(expr);
+    expect(atomos).toHaveLength(3);
+    expect(atomos[0]).toEqual({ variable_nombre: 'A', operador: '=', valor_esperado: 'b' });
+    expect(atomos[1]).toEqual({ variable_nombre: 'B', operador: '=', valor_esperado: '0' });
+    expect(atomos[2]).toEqual({ variable_nombre: 'P', operador: '>', valor_esperado: '10' });
+  });
+
+  it('valida sintaxis y balanceo de paréntesis correctamente', () => {
+    expect(validarSintaxisExpresionLogica('(A=b AND B=0) OR P>10').valida).toBe(true);
+    expect(validarSintaxisExpresionLogica('(A=b AND B=0').valida).toBe(false);
+    expect(validarSintaxisExpresionLogica('A=b AND').valida).toBe(false);
+    expect(validarSintaxisExpresionLogica('AND A=b').valida).toBe(false);
   });
 });
 

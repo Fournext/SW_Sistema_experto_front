@@ -668,6 +668,7 @@ export function useEditorAcciones({
             });
             refetchVariables();
           } else if (tipo === 'REGLA') {
+            const rawExprLogica = (nuevosDatos as Record<string, unknown>).expresion_logica as string | null | undefined;
             if (rawConds !== undefined || rawConcls !== undefined) {
               await baseConocimientoService.actualizarReglaCompleta(entidadId, {
                 nombre: nuevosDatos.nombre || 'Regla',
@@ -676,6 +677,7 @@ export function useEditorAcciones({
                 factor_certeza:
                   nuevosDatos.factor_certeza !== undefined ? Number(nuevosDatos.factor_certeza) : undefined,
                 activa: nuevosDatos.activa !== false,
+                expresion_logica: rawExprLogica !== undefined ? (rawExprLogica || undefined) : undefined,
                 condiciones: rawConds || [],
                 conclusiones: rawConcls || [],
               });

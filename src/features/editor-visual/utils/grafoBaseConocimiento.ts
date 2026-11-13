@@ -1,5 +1,6 @@
 import type { FlowNode, FlowEdge, NodoVisualBackend } from '../types/types';
 import type { Hecho, Variable, Regla } from '@/features/base-conocimiento/types/types';
+import { extraerAtomosDeExpresion } from './evaluadorLogicaPremisas';
 
 export interface GrafoResult {
   nodes: FlowNode[];
@@ -154,6 +155,16 @@ export const construirGrafoBaseConocimiento = (
         valor: safeStr(c.valor_esperado, ''),
       };
     });
+    // Extraer también variables de la expresión lógica compleja si está presente
+    if (regla.expresion_logica && regla.expresion_logica.trim()) {
+      const atomosExpr = extraerAtomosDeExpresion(regla.expresion_logica);
+      for (const at of atomosExpr) {
+        if (at.variable_nombre) {
+          condVars.add(at.variable_nombre.toLowerCase());
+        }
+      }
+    }
+
     reglaCondicionesVar.set(reglaId, condVars);
 
     const conclVars = new Set<string>();
@@ -188,6 +199,7 @@ export const construirGrafoBaseConocimiento = (
         ordenNumero: regla.id !== undefined && regla.id !== null ? reglaOrdenMap.get(String(regla.id)) : undefined,
         factor_certeza: regla.factor_certeza ?? 1.0,
         activa: regla.activa !== false,
+        expresion_logica: regla.expresion_logica || undefined,
         condicionesLista,
         conclusionesLista,
       },

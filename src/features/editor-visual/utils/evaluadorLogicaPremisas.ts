@@ -230,3 +230,110 @@ export function evaluarExpresionLogica(expr: string, memoria: Record<string, any
   }
 }
 
+export interface AtomoExtraido {
+  variable_nombre: string;
+  operador: string;
+  valor_esperado: string;
+}
+
+/**
+ * Extrae los átomos individuales de una expresión lógica compleja (ej: "(A=b AND B=0) OR P>10")
+ * para sincronizarlos como entidades de condiciones en la Base de Conocimiento.
+ */
+export function extraerAtomosDeExpresion(expr: string): AtomoExtraido[] {
+  if (!expr || !expr.trim()) return [];
+  const tokens = tokenizarExpresion(expr);
+  const atomos: AtomoExtraido[] = [];
+  const ops = ['>=', '<=', '!=', '<>', '==', '=', '>', '<'];
+
+  for (const tok of tokens) {
+    if (tok.tipo === 'ATOM') {
+      const texto = tok.valor.trim();
+      let varNombre = texto;
+      let op = '=';
+      let valorEsperado = 'true';
+
+      for (const o of ops) {
+        const idx = texto.indexOf(o);
+        if (idx !== -1) {
+          varNombre = texto.slice(0, idx).trim();
+          op = o === '==' ? '=' : o === '<>' ? '!=' : o;
+          valorEsperado = texto.slice(idx + o.length).trim().replace(/^['"]|['"]$/g, '');
+          break;
+        }
+      }
+
+      if (varNombre) {
+        atomos.push({
+          variable_nombre: varNombre,
+          operador: op,
+          valor_esperado: valorEsperado || 'true',
+        });
+      }
+    }
+  }
+
+  return atomos;
+}
+
+/**
+ * Valida sintácticamente una expresión lógica: balanceo de paréntesis y operadores consecutivos/colgantes.
+ */
+export function validarSintaxisExpresionLogica(expr: string): { valida: boolean; error?: string } {
+  if (!expr || !expr.trim()) {
+    return { valida: false, error: 'La expresión lógica no puede estar vacía.' };
+  }
+
+  const tokens = tokenizarExpresion(expr);
+  if (tokens.length === 0) {
+    return { valida: false, error: 'No se detectaron condiciones en la expresión.' };
+  }
+
+  let balanceParentesis = 0;
+  let anterior: Token | null = null;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const tok = tokens[i];
+
+    if (tok.tipo === 'LPAREN') {
+      balanceParentesis++;
+      if (anterior && (anterior.tipo === 'ATOM' || anterior.tipo === 'RPAREN')) {
+        return { valida: false, error: 'Falta un operador lógico antes del paréntesis de apertura "(". ' };
+      }
+    } else if (tok.tipo === 'RPAREN') {
+      balanceParentesis--;
+      if (balanceParentesis < 0) {
+        return { valida: false, error: 'Paréntesis de cierre ")" sin paréntesis de apertura correspondiente.' };
+      }
+      if (anterior && (anterior.tipo === 'AND' || anterior.tipo === 'OR' || anterior.tipo === 'NOT' || anterior.tipo === 'LPAREN')) {
+        return { valida: false, error: 'Paréntesis cerrado inmediatamente después de un operador o sin contenido.' };
+      }
+    } else if (tok.tipo === 'AND' || tok.tipo === 'OR') {
+      if (!anterior || anterior.tipo === 'LPAREN' || anterior.tipo === 'AND' || anterior.tipo === 'OR' || anterior.tipo === 'NOT') {
+        return { valida: false, error: `Operador "${tok.valor}" en posición inválida.` };
+      }
+    } else if (tok.tipo === 'NOT') {
+      if (anterior && (anterior.tipo === 'ATOM' || anterior.tipo === 'RPAREN')) {
+        return { valida: false, error: 'Falta un operador lógico (AND / OR) antes del operador "NOT".' };
+      }
+    } else if (tok.tipo === 'ATOM') {
+      if (anterior && (anterior.tipo === 'ATOM' || anterior.tipo === 'RPAREN')) {
+        return { valida: false, error: `Falta un conector lógico antes de "${tok.valor}".` };
+      }
+    }
+
+    anterior = tok;
+  }
+
+  if (balanceParentesis !== 0) {
+    return { valida: false, error: 'Paréntesis no balanceados: hay paréntesis sin cerrar.' };
+  }
+
+  if (anterior && (anterior.tipo === 'AND' || anterior.tipo === 'OR' || anterior.tipo === 'NOT')) {
+    return { valida: false, error: `La expresión no puede terminar con el operador "${anterior.valor}".` };
+  }
+
+  return { valida: true };
+}
+
+

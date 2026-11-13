@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Workflow, ArrowRight } from 'lucide-react';
+import { X, Plus, Trash2, Workflow, ArrowRight, Code2, ListFilter } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import baseConocimientoService from '@/features/base-conocimiento/services/baseConocimientoService';
+import {
+  extraerAtomosDeExpresion,
+  validarSintaxisExpresionLogica,
+} from '../utils/evaluadorLogicaPremisas';
 import type {
   Regla,
   Variable,
@@ -54,6 +58,8 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
   const [conclusiones, setConclusiones] = useState<ConclusionFila[]>([
     { id: 'concl1', variable_nombre: '', valor_resultante: '', tipo_dato: 'TEXTO' },
   ]);
+  const [modoPremisa, setModoPremisa] = useState<'SIMPLE' | 'COMPLEJA'>('SIMPLE');
+  const [expresionLogica, setExpresionLogica] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,6 +86,8 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
       setNombre(`R${siguienteNumeroRegla}`);
       setPrioridad(10);
       setDescripcion('');
+      setModoPremisa('SIMPLE');
+      setExpresionLogica('');
       setCondiciones([{ id: 'c1', variable_nombre: '', operador: '=', valor_esperado: '', tipo_dato: 'TEXTO' }]);
       setConclusiones([{ id: 'concl1', variable_nombre: '', valor_resultante: '', tipo_dato: 'TEXTO' }]);
       setError(null);
@@ -130,23 +138,6 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
     );
   };
 
-  const agregarConclusion = () => {
-    setConclusiones((prev) => [
-      ...prev,
-      {
-        id: `concl_${Date.now()}_${Math.random()}`,
-        variable_nombre: '',
-        valor_resultante: '',
-        tipo_dato: 'TEXTO',
-      },
-    ]);
-  };
-
-  const eliminarConclusion = (id: string) => {
-    if (conclusiones.length <= 1) return;
-    setConclusiones((prev) => prev.filter((c) => c.id !== id));
-  };
-
   const actualizarConclusion = (id: string, campo: keyof ConclusionFila, valor: string) => {
     setConclusiones((prev) =>
       prev.map((c) => {
@@ -171,19 +162,51 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
       return;
     }
 
-    const condsFiltradas: CondicionItemInput[] = condiciones
-      .filter((c) => c.variable_nombre.trim() && c.valor_esperado.trim())
-      .map((c, index) => ({
-        variable_nombre: c.variable_nombre.trim(),
-        operador: c.operador,
-        valor_esperado: c.valor_esperado.trim(),
-        tipo_dato: c.tipo_dato,
+    let condsFiltradas: CondicionItemInput[] = [];
+    let exprLogicaFinal: string | undefined = undefined;
+
+    if (modoPremisa === 'COMPLEJA') {
+      const exprTrimmed = expresionLogica.trim();
+      if (!exprTrimmed) {
+        setError('Debes ingresar la expresión lógica de la premisa (ej. (A=b AND B=0) OR P>10).');
+        return;
+      }
+
+      const validacion = validarSintaxisExpresionLogica(exprTrimmed);
+      if (!validacion.valida) {
+        setError(validacion.error || 'La expresión lógica contiene errores de sintaxis o paréntesis desbalanceados.');
+        return;
+      }
+
+      exprLogicaFinal = exprTrimmed;
+      const atomos = extraerAtomosDeExpresion(exprTrimmed);
+      if (atomos.length === 0) {
+        setError('No se pudieron extraer condiciones válidas de la expresión lógica.');
+        return;
+      }
+
+      condsFiltradas = atomos.map((a, index) => ({
+        variable_nombre: a.variable_nombre,
+        operador: a.operador,
+        valor_esperado: a.valor_esperado,
+        tipo_dato: detectarTipo(a.valor_esperado, a.variable_nombre),
         orden: index + 1,
       }));
+    } else {
+      condsFiltradas = condiciones
+        .filter((c) => c.variable_nombre.trim() && c.valor_esperado.trim())
+        .map((c, index) => ({
+          variable_nombre: c.variable_nombre.trim(),
+          operador: c.operador,
+          valor_esperado: c.valor_esperado.trim(),
+          tipo_dato: c.tipo_dato,
+          orden: index + 1,
+        }));
 
-    if (condsFiltradas.length === 0) {
-      setError('Debes ingresar al menos una condición válida en la sección SI (IF).');
-      return;
+      if (condsFiltradas.length === 0) {
+        setError('Debes ingresar al menos una condición válida en la sección SI (IF).');
+        return;
+      }
     }
 
     const conclsFiltradas: ConclusionItemInput[] = conclusiones
@@ -206,6 +229,7 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
         prioridad: Number(prioridad) || 10,
         descripcion: descripcion.trim() || undefined,
         activa: true,
+        expresion_logica: exprLogicaFinal,
         condiciones: condsFiltradas,
         conclusiones: conclsFiltradas,
       });
@@ -304,76 +328,159 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 SI (IF) — Premisas
               </span>
-              <button
-                type="button"
-                onClick={agregarCondicion}
-                className="text-xs font-bold text-emerald-700 hover:text-emerald-900 inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                + Condición
-              </button>
+
+              {/* Selector de Modo de Premisa: Simple (AND) vs Compleja (OR / NOT / Paréntesis) */}
+              <div className="flex items-center p-0.5 bg-slate-200/80 rounded-md border border-slate-300/80 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setModoPremisa('SIMPLE')}
+                  className={`px-2 py-0.5 rounded font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                    modoPremisa === 'SIMPLE'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <ListFilter className="w-3 h-3 text-emerald-600" />
+                  Simple (AND)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModoPremisa('COMPLEJA');
+                    if (!expresionLogica.trim() && condiciones.length > 0) {
+                      const validas = condiciones.filter((c) => c.variable_nombre.trim());
+                      if (validas.length > 0) {
+                        setExpresionLogica(
+                          validas.map((c) => `${c.variable_nombre}${c.operador}${c.valor_esperado || "''"}`).join(' AND ')
+                        );
+                      }
+                    }
+                  }}
+                  className={`px-2 py-0.5 rounded font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                    modoPremisa === 'COMPLEJA'
+                      ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Code2 className="w-3 h-3 text-amber-600" />
+                  Compleja (OR, NOT, ())
+                </button>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              {condiciones.map((c, index) => (
-                <div key={c.id} className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-mono font-bold text-slate-500 shrink-0 w-7">
-                    {index === 0 ? 'IF' : 'AND'}
-                  </span>
-                  <input
-                    type="text"
-                    list="variables-disponibles"
-                    value={c.variable_nombre}
-                    onChange={(e) => actualizarCondicion(c.id, 'variable_nombre', e.target.value)}
-                    placeholder="Variable (ej. x)"
-                    className="flex-1 min-w-[80px] px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-md font-mono focus:ring-1 focus:ring-slate-900"
-                    required
-                  />
-                  <select
-                    value={c.operador}
-                    onChange={(e) => actualizarCondicion(c.id, 'operador', e.target.value)}
-                    className="w-14 px-1 py-1.5 text-xs bg-white border border-slate-200 rounded-md font-mono font-bold text-center focus:ring-1 focus:ring-slate-900"
-                  >
-                    <option value="=">=</option>
-                    <option value="!=">!=</option>
-                    <option value=">">&gt;</option>
-                    <option value="<">&lt;</option>
-                    <option value=">=">&gt;=</option>
-                    <option value="<=">&lt;=</option>
-                  </select>
-                  <input
-                    type="text"
-                    value={c.valor_esperado}
-                    onChange={(e) => actualizarCondicion(c.id, 'valor_esperado', e.target.value)}
-                    placeholder="Valor"
-                    className="flex-1 min-w-[70px] px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-md font-mono focus:ring-1 focus:ring-slate-900"
-                    required
-                  />
-                  <select
-                    value={c.tipo_dato}
-                    onChange={(e) => actualizarCondicion(c.id, 'tipo_dato', e.target.value)}
-                    className="w-20 px-1 py-1.5 text-[10px] bg-white border border-slate-200 rounded-md font-medium text-slate-700 focus:ring-1 focus:ring-slate-900 shrink-0"
-                    title="Tipo de dato"
-                  >
-                    <option value="ENTERO">Entero</option>
-                    <option value="DECIMAL">Decimal</option>
-                    <option value="TEXTO">Texto</option>
-                    <option value="BOOLEANO">Bool</option>
-                    <option value="OPCION">Opción</option>
-                  </select>
-                  {condiciones.length > 1 && (
+            {modoPremisa === 'COMPLEJA' ? (
+              <div className="space-y-2 pt-1">
+                <p className="text-[11px] text-slate-500">
+                  Escribe expresiones con conectores <strong>AND</strong>, <strong>OR</strong>, <strong>NOT</strong> y paréntesis, por ejemplo:
+                  <code className="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded ml-1 font-mono">
+                    (A=b AND B=0) OR P&gt;10
+                  </code>
+                </p>
+
+                {/* Botones de inserción rápida para la fórmula */}
+                <div className="flex flex-wrap items-center gap-1">
+                  <span className="text-[10px] font-bold text-slate-400 mr-1">Insertar:</span>
+                  {[
+                    { label: 'OR', val: ' OR ' },
+                    { label: 'AND', val: ' AND ' },
+                    { label: 'NOT', val: 'NOT ' },
+                    { label: '( ... )', val: '(  )' },
+                    { label: '>=', val: ' >= ' },
+                    { label: '<=', val: ' <= ' },
+                    { label: '!=', val: ' != ' },
+                  ].map((op) => (
                     <button
+                      key={op.label}
                       type="button"
-                      onClick={() => eliminarCondicion(c.id)}
-                      className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                      title="Eliminar condición"
+                      onClick={() => setExpresionLogica((prev) => (prev ? `${prev}${op.val}` : op.val.trim()))}
+                      className="px-1.5 py-0.5 text-[10px] font-mono font-bold bg-white hover:bg-slate-100 text-slate-700 rounded border border-slate-300 shadow-2xs transition-colors cursor-pointer"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      {op.label}
                     </button>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+
+                <textarea
+                  value={expresionLogica}
+                  onChange={(e) => setExpresionLogica(e.target.value)}
+                  placeholder="Ej: (temperatura>38 AND tos=true) OR saturacion<92"
+                  rows={2}
+                  className="w-full px-2.5 py-1.5 text-xs bg-slate-900 text-teal-300 border border-slate-800 rounded-md font-mono focus:ring-1 focus:ring-teal-400 shadow-inner"
+                  required
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={agregarCondicion}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900 inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    + Condición
+                  </button>
+                </div>
+                {condiciones.map((c, index) => (
+                  <div key={c.id} className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-mono font-bold text-slate-500 shrink-0 w-7">
+                      {index === 0 ? 'IF' : 'AND'}
+                    </span>
+                    <input
+                      type="text"
+                      list="variables-disponibles"
+                      value={c.variable_nombre}
+                      onChange={(e) => actualizarCondicion(c.id, 'variable_nombre', e.target.value)}
+                      placeholder="Variable (ej. x)"
+                      className="flex-1 min-w-[80px] px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-md font-mono focus:ring-1 focus:ring-slate-900"
+                      required
+                    />
+                    <select
+                      value={c.operador}
+                      onChange={(e) => actualizarCondicion(c.id, 'operador', e.target.value)}
+                      className="w-14 px-1 py-1.5 text-xs bg-white border border-slate-200 rounded-md font-mono font-bold text-center focus:ring-1 focus:ring-slate-900"
+                    >
+                      <option value="=">=</option>
+                      <option value="!=">!=</option>
+                      <option value=">">&gt;</option>
+                      <option value="<">&lt;</option>
+                      <option value=">=">&gt;=</option>
+                      <option value="<=">&lt;=</option>
+                    </select>
+                    <input
+                      type="text"
+                      value={c.valor_esperado}
+                      onChange={(e) => actualizarCondicion(c.id, 'valor_esperado', e.target.value)}
+                      placeholder="Valor"
+                      className="flex-1 min-w-[70px] px-2 py-1.5 text-xs bg-white border border-slate-200 rounded-md font-mono focus:ring-1 focus:ring-slate-900"
+                      required
+                    />
+                    <select
+                      value={c.tipo_dato}
+                      onChange={(e) => actualizarCondicion(c.id, 'tipo_dato', e.target.value)}
+                      className="w-20 px-1 py-1.5 text-[10px] bg-white border border-slate-200 rounded-md font-medium text-slate-700 focus:ring-1 focus:ring-slate-900 shrink-0"
+                      title="Tipo de dato"
+                    >
+                      <option value="ENTERO">Entero</option>
+                      <option value="DECIMAL">Decimal</option>
+                      <option value="TEXTO">Texto</option>
+                      <option value="BOOLEANO">Bool</option>
+                      <option value="OPCION">Opción</option>
+                    </select>
+                    {condiciones.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => eliminarCondicion(c.id)}
+                        className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        title="Eliminar condición"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* SECCIÓN ENTONCES (THEN - Conclusiones) */}
@@ -381,20 +488,12 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
                 <ArrowRight className="w-3.5 h-3.5 text-indigo-600" />
-                ENTONCES (THEN) — Conclusiones
+                ENTONCES (THEN) — Conclusión
               </span>
-              <button
-                type="button"
-                onClick={agregarConclusion}
-                className="text-xs font-bold text-indigo-700 hover:text-indigo-900 inline-flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-2 py-0.5 rounded border border-indigo-200 transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                + Deducción
-              </button>
             </div>
 
             <div className="space-y-2">
-              {conclusiones.map((c) => (
+              {conclusiones.slice(0, 1).map((c) => (
                 <div key={c.id} className="flex items-center gap-1.5">
                   <span className="text-[11px] font-mono font-bold text-slate-500 shrink-0 w-8">
                     THEN
@@ -429,33 +528,9 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
                     <option value="BOOLEANO">Bool</option>
                     <option value="OPCION">Opción</option>
                   </select>
-                  {conclusiones.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => eliminarConclusion(c.id)}
-                      className="p-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                      title="Eliminar conclusión"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Opcional: Descripción pedagógica */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">
-              Descripción o justificación didáctica (opcional)
-            </label>
-            <input
-              type="text"
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-              placeholder="Ej. Si x es 0, deducir que la propiedad P adopta el estado a"
-              className="w-full px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-md focus:bg-white focus:ring-1 focus:ring-slate-900"
-            />
           </div>
 
           {/* Botones de acción */}

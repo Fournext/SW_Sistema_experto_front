@@ -11,6 +11,7 @@ export const ReglaNode: React.FC<NodeProps<FlowNode>> = memo(({ data, selected }
 
   const condiciones = (data.condicionesLista || []) as Array<{ sujeto: string; operador: string; valor: string }>;
   const conclusiones = (data.conclusionesLista || []) as Array<{ destino: string; valor: string }>;
+  const expresionLogica = (data.expresion_logica as string | undefined)?.trim();
 
   // Estilos visuales calibrados (Anti-Slop UI: base neutra mate + acentos de estado de precisión)
   let containerStyle = 'border-slate-300 hover:border-slate-400 bg-white shadow-2xs';
@@ -102,11 +103,54 @@ export const ReglaNode: React.FC<NodeProps<FlowNode>> = memo(({ data, selected }
       <div className="p-2.5 space-y-2 text-xs bg-white">
         {/* Sección SI (IF / Condiciones) */}
         <div className="bg-slate-50/70 border border-slate-200/80 rounded-md p-2">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5 mb-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            SI (IF)
+          <div className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              SI (IF)
+            </div>
+            {expresionLogica && (
+              <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300 font-bold">
+                LÓGICA BOOLEANA
+              </span>
+            )}
           </div>
-          {condiciones.length > 0 ? (
+
+          {expresionLogica ? (
+            <div className="p-2 rounded bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-100 shadow-inner break-words leading-relaxed">
+              {expresionLogica.split(/(\b(?:AND|OR|NOT|Y|O|&&|\|\||!)\b|[\(\)])/gi).map((part, idx) => {
+                const upper = part.toUpperCase().trim();
+                if (upper === 'OR' || upper === 'O' || upper === '||') {
+                  return (
+                    <span key={idx} className="font-bold text-amber-400 mx-1">
+                      {part}
+                    </span>
+                  );
+                }
+                if (upper === 'AND' || upper === 'Y' || upper === '&&') {
+                  return (
+                    <span key={idx} className="font-bold text-emerald-400 mx-1">
+                      {part}
+                    </span>
+                  );
+                }
+                if (upper === 'NOT' || upper === 'NO' || upper === '!') {
+                  return (
+                    <span key={idx} className="font-bold text-rose-400 mx-1">
+                      {part}
+                    </span>
+                  );
+                }
+                if (part === '(' || part === ')') {
+                  return (
+                    <span key={idx} className="font-bold text-sky-400">
+                      {part}
+                    </span>
+                  );
+                }
+                return <span key={idx}>{part}</span>;
+              })}
+            </div>
+          ) : condiciones.length > 0 ? (
             <div className="space-y-1">
               {condiciones.map((c, i) => (
                 <React.Fragment key={i}>
