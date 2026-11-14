@@ -186,11 +186,21 @@ export function useEjecucionLaboratorio({
   const columnaActiva = ultimoEvento?.columna || null;
   const preguntaPendiente = estadoVM?.pregunta_pendiente || null;
 
-  // Extraer Base de Hechos de las variables del frame actual si existe
-  const baseHechosRuntime = (frameActual?.variables?.['BH'] as any) || null;
-  const pilaHNRuntime = (frameActual?.variables?.['HN'] as any) || null;
-  const colaQRuntime = (frameActual?.variables?.['Q'] as any) || null;
-  const listaMetasRuntime = (frameActual?.variables?.['Metas'] as any) || null;
+  // Extraer Base de Hechos y estructuras buscando en el frame actual o hacia atrás en la pila de llamadas
+  const buscarVariableEnFrames = (nombre: string) => {
+    if (!estadoVM?.frames || estadoVM.frames.length === 0) return null;
+    for (let i = estadoVM.frames.length - 1; i >= 0; i--) {
+      const vars = estadoVM.frames[i].variables;
+      if (vars && vars[nombre]) return vars[nombre];
+      if (vars && vars[nombre.toLowerCase()]) return vars[nombre.toLowerCase()];
+    }
+    return null;
+  };
+
+  const baseHechosRuntime = (buscarVariableEnFrames('BH') as any) || null;
+  const pilaHNRuntime = (buscarVariableEnFrames('HN') as any) || null;
+  const colaQRuntime = (buscarVariableEnFrames('Q') as any) || null;
+  const listaMetasRuntime = (buscarVariableEnFrames('Metas') || buscarVariableEnFrames('metas') as any) || null;
 
   return {
     codigo,

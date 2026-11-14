@@ -33,6 +33,24 @@ export const PanelVariables: React.FC<PanelVariablesProps> = ({ frame }) => {
     if (typeof val === 'string') {
       return <span className="text-amber-300 font-mono">"{val}"</span>;
     }
+    if (Array.isArray(val)) {
+      if (val.length === 0) {
+        return <span className="text-xs text-slate-400 font-mono">[]</span>;
+      }
+      return (
+        <div className="flex flex-wrap gap-1 items-center max-w-full">
+          <span className="text-[10px] text-slate-400 font-mono">[{val.length}]:</span>
+          {val.slice(0, 10).map((item, idx) => (
+            <span key={idx} className="inline-block">
+              {renderizarValor(item)}
+            </span>
+          ))}
+          {val.length > 10 && (
+            <span className="text-[10px] text-slate-500 font-mono">+{val.length - 10}</span>
+          )}
+        </div>
+      );
+    }
     if (typeof val === 'object') {
       const obj = val as Record<string, unknown>;
       if (obj.tipo_objeto === 'Hecho') {
@@ -44,9 +62,17 @@ export const PanelVariables: React.FC<PanelVariablesProps> = ({ frame }) => {
         );
       }
       if (obj.tipo_objeto === 'Regla') {
+        const marcada = Boolean(obj.marcada);
         return (
-          <span className="inline-flex items-center gap-1 rounded bg-indigo-950/80 px-2 py-0.5 text-xs text-indigo-300 border border-indigo-800">
-            <span className="font-semibold">{String(obj.nombre)}</span>
+          <span
+            className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-semibold border ${
+              marcada
+                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                : 'bg-indigo-950/80 text-indigo-300 border-indigo-800'
+            }`}
+          >
+            <span>{String(obj.nombre)}</span>
+            {marcada && <span className="text-[9px] text-emerald-400">✓</span>}
           </span>
         );
       }
@@ -59,10 +85,27 @@ export const PanelVariables: React.FC<PanelVariablesProps> = ({ frame }) => {
       }
       if (obj.tipo_objeto === 'Lista' || obj.tipo_objeto === 'Pila' || obj.tipo_objeto === 'Cola') {
         const elementos = Array.isArray(obj.elementos) ? obj.elementos : [];
+        if (elementos.length === 0) {
+          return (
+            <span className="text-xs text-slate-400 font-mono">
+              {obj.tipo_objeto}&lt;vacía&gt;
+            </span>
+          );
+        }
         return (
-          <span className="text-xs text-slate-400 font-mono">
-            {obj.tipo_objeto}&lt;len={elementos.length}&gt;
-          </span>
+          <div className="flex flex-wrap gap-1 items-center max-w-full">
+            <span className="text-[10px] text-slate-400 font-mono">
+              {obj.tipo_objeto}[{elementos.length}]:
+            </span>
+            {elementos.slice(0, 8).map((elem, idx) => (
+              <span key={idx} className="inline-block">
+                {renderizarValor(elem)}
+              </span>
+            ))}
+            {elementos.length > 8 && (
+              <span className="text-[10px] text-slate-500 font-mono">+{elementos.length - 8}</span>
+            )}
+          </div>
         );
       }
       if (obj.tipo_objeto === 'BaseHechos') {
