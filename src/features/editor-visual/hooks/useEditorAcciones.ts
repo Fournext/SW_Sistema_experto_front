@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
 import type { Node } from '@xyflow/react';
-import baseConocimientoService from '@/features/base-conocimiento/services/baseConocimientoService';
-import type {
-  ConclusionItemInput,
-  CondicionItemInput,
-  Regla,
-  TipoDato,
-} from '@/features/base-conocimiento/types/types';
+import {
+  baseConocimientoService,
+  type ConclusionItemInput,
+  type CondicionItemInput,
+  type Regla,
+  type TipoDato,
+} from '@/features/base-conocimiento';
 import editorVisualService from '../services/editorVisualService';
 import type { FlowEdge, FlowNode, NodoDatosGenerales, TipoNodo } from '../types/types';
 

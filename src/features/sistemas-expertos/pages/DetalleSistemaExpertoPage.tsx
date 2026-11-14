@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Clock,
   BookOpen,
+  Code,
 } from 'lucide-react';
 import { useSistemaExperto, useSistemaExpertoMutations } from '../hooks/useSistemasExpertos';
 import SistemaExpertoForm from '../components/SistemaExpertoForm';
@@ -283,6 +284,25 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
               </p>
               <div className="mt-4 inline-flex items-center text-xs font-semibold text-emerald-600">
                 Ejecutar inferencia →
+              </div>
+            </div></Permiso>
+
+            {/* Módulo Laboratorio de Algoritmos */}
+            <Permiso permisos={[Permisos.LABORATORIO_VER]}><div
+              onClick={() => navigate(`/sistemas/${id}/laboratorio`)}
+              className="p-5 bg-white hover:bg-purple-50/50 border border-slate-200 hover:border-purple-300 rounded-2xl shadow-2xs transition-all cursor-pointer group"
+            >
+              <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                <Code className="w-5 h-5" />
+              </div>
+              <h4 className="text-base font-bold text-slate-900 group-hover:text-purple-700 transition-colors">
+                Laboratorio de Algoritmos
+              </h4>
+              <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                Programa y simula algoritmos de control (FWC, metas, colas Q, pilas HN) paso a paso en memoria.
+              </p>
+              <div className="mt-4 inline-flex items-center text-xs font-semibold text-purple-600">
+                Abrir laboratorio →
               </div>
             </div></Permiso>
           </div>

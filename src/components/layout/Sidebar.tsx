@@ -183,6 +183,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span>Motor de Inferencia</span>
                 </PermissionLink>
 
+                <PermissionLink permiso={Permisos.LABORATORIO_VER}
+                  to={`/sistemas/${currentSistemaId}/laboratorio`}
+                  className={navItemClass}
+                  onClick={onClose}
+                >
+                  <Cpu className="w-4 h-4 text-purple-600" />
+                  <span>Laboratorio</span>
+                </PermissionLink>
+
                 {/* Submódulos de Inferencia y Validación */}
                 <PermissionLink permiso={Permisos.VALIDACION_VER}
                   to={`/sistemas/${currentSistemaId}/validacion`}

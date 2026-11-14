@@ -1,21 +1,32 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import baseConocimientoService from '../services/baseConocimientoService';
+import {
+  baseConocimientoKeys,
+  BASE_CONOCIMIENTO_KEY,
+  HECHOS_KEY,
+  VARIABLES_KEY,
+  REGLAS_KEY,
+} from '../constants/queryKeys';
 import type {
   CrearHechoDTO,
   CrearVariableDTO,
   CrearReglaDTO,
   CrearCondicionDTO,
   CrearConclusionDTO,
+  CrearReglaCompletaDTO,
 } from '../types/types';
 
-export const BASE_CONOCIMIENTO_KEY = 'base-conocimiento';
-export const HECHOS_KEY = 'hechos';
-export const VARIABLES_KEY = 'variables';
-export const REGLAS_KEY = 'reglas';
+export {
+  baseConocimientoKeys,
+  BASE_CONOCIMIENTO_KEY,
+  HECHOS_KEY,
+  VARIABLES_KEY,
+  REGLAS_KEY,
+};
 
 export const useBaseConocimiento = (sistemaId: number | string | undefined) => {
   return useQuery({
-    queryKey: [BASE_CONOCIMIENTO_KEY, sistemaId],
+    queryKey: baseConocimientoKeys.porSistema(sistemaId),
     queryFn: () => {
       if (!sistemaId) throw new Error('ID de sistema experto requerido');
       return baseConocimientoService.obtenerPorSistemaExperto(sistemaId);
@@ -26,7 +37,7 @@ export const useBaseConocimiento = (sistemaId: number | string | undefined) => {
 
 export const useHechos = (baseId: number | string | undefined) => {
   return useQuery({
-    queryKey: [HECHOS_KEY, baseId],
+    queryKey: baseConocimientoKeys.hechos(baseId),
     queryFn: () => {
       if (!baseId) return [];
       return baseConocimientoService.listarHechos(baseId);
@@ -37,7 +48,7 @@ export const useHechos = (baseId: number | string | undefined) => {
 
 export const useVariables = (baseId: number | string | undefined) => {
   return useQuery({
-    queryKey: [VARIABLES_KEY, baseId],
+    queryKey: baseConocimientoKeys.variables(baseId),
     queryFn: () => {
       if (!baseId) return [];
       return baseConocimientoService.listarVariables(baseId);
@@ -48,7 +59,7 @@ export const useVariables = (baseId: number | string | undefined) => {
 
 export const useReglas = (baseId: number | string | undefined) => {
   return useQuery({
-    queryKey: [REGLAS_KEY, baseId],
+    queryKey: baseConocimientoKeys.reglas(baseId),
     queryFn: () => {
       if (!baseId) return [];
       return baseConocimientoService.listarReglas(baseId);
@@ -61,8 +72,8 @@ export const useHechosMutations = (baseId: number | string | undefined) => {
   const queryClient = useQueryClient();
 
   const invalidar = () => {
-    queryClient.invalidateQueries({ queryKey: [HECHOS_KEY, baseId] });
-    queryClient.invalidateQueries({ queryKey: [BASE_CONOCIMIENTO_KEY] });
+    queryClient.invalidateQueries({ queryKey: baseConocimientoKeys.hechos(baseId) });
+    queryClient.invalidateQueries({ queryKey: baseConocimientoKeys.all });
   };
 
   const crear = useMutation({
@@ -91,8 +102,8 @@ export const useVariablesMutations = (baseId: number | string | undefined) => {
   const queryClient = useQueryClient();
 
   const invalidar = () => {
-    queryClient.invalidateQueries({ queryKey: [VARIABLES_KEY, baseId] });
-    queryClient.invalidateQueries({ queryKey: [BASE_CONOCIMIENTO_KEY] });
+    queryClient.invalidateQueries({ queryKey: baseConocimientoKeys.variables(baseId) });
+    queryClient.invalidateQueries({ queryKey: baseConocimientoKeys.all });
   };
 
   const crear = useMutation({
@@ -121,8 +132,10 @@ export const useReglasMutations = (baseId: number | string | undefined) => {
   const queryClient = useQueryClient();
 
   const invalidar = () => {
-    queryClient.invalidateQueries({ queryKey: [REGLAS_KEY, baseId] });
-    queryClient.invalidateQueries({ queryKey: [BASE_CONOCIMIENTO_KEY] });
+    queryClient.invalidateQueries({ queryKey: baseConocimientoKeys.reglas(baseId) });
+    queryClient.invalidateQueries({ queryKey: baseConocimientoKeys.all });
+    // También invalidar queries de validación si existen
+    queryClient.invalidateQueries({ queryKey: ['validacion', baseId] });
   };
 
   const crear = useMutation({
@@ -133,9 +146,23 @@ export const useReglasMutations = (baseId: number | string | undefined) => {
     onSuccess: invalidar,
   });
 
+  const crearCompleta = useMutation({
+    mutationFn: (datos: CrearReglaCompletaDTO) => {
+      if (!baseId) throw new Error('Base de conocimiento no identificada');
+      return baseConocimientoService.crearReglaCompleta(baseId, datos);
+    },
+    onSuccess: invalidar,
+  });
+
   const actualizar = useMutation({
     mutationFn: ({ id, datos }: { id: number | string; datos: Partial<CrearReglaDTO> }) =>
       baseConocimientoService.actualizarRegla(id, datos),
+    onSuccess: invalidar,
+  });
+
+  const actualizarCompleta = useMutation({
+    mutationFn: ({ id, datos }: { id: number | string; datos: CrearReglaCompletaDTO }) =>
+      baseConocimientoService.actualizarReglaCompleta(id, datos),
     onSuccess: invalidar,
   });
 
@@ -170,7 +197,9 @@ export const useReglasMutations = (baseId: number | string | undefined) => {
 
   return {
     crear,
+    crearCompleta,
     actualizar,
+    actualizarCompleta,
     eliminar,
     agregarCondicion,
     eliminarCondicion,

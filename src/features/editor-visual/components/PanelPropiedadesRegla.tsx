@@ -3,6 +3,7 @@ import { Plus, Trash2, ArrowRight, Workflow, Code2, ListFilter } from 'lucide-re
 import Input from '@/components/ui/Input';
 import Textarea from '@/components/ui/Textarea';
 import Button from '@/components/ui/Button';
+import { inferirTipoDato } from '@/features/base-conocimiento/utils/inferenciaTipos';
 import {
   extraerAtomosDeExpresion,
   validarSintaxisExpresionLogica,
@@ -70,21 +71,7 @@ export const PanelPropiedadesRegla: React.FC<PanelPropiedadesReglaProps> = ({
   ).filter(Boolean);
 
   const detectarTipo = (valor: string, varNombre?: string): TipoDato => {
-    if (varNombre) {
-      const encontrada = variables.find(
-        (v) => v.nombre.trim().toLowerCase() === varNombre.trim().toLowerCase()
-      );
-      if (encontrada?.tipo_dato) return encontrada.tipo_dato;
-      if (encontrada?.tipo) return encontrada.tipo;
-    }
-    const trimmed = valor.trim().toLowerCase();
-    if (trimmed === 'true' || trimmed === 'false' || trimmed === 'si' || trimmed === 'no') {
-      return 'BOOLEANO';
-    }
-    if (trimmed !== '' && !isNaN(Number(trimmed))) {
-      return trimmed.includes('.') ? 'DECIMAL' : 'ENTERO';
-    }
-    return 'TEXTO';
+    return inferirTipoDato(valor, varNombre, variables, hechos);
   };
 
   // Inicializar formulario con los datos de la regla y sus condiciones/conclusiones

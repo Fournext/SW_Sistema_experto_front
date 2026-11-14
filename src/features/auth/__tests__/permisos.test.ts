@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { CATALOGO_PERMISOS, Permisos, PREFIJO_PERMISOS, userHasPermission } from '../../../config/permisos';
 import { destinoPostLogin } from '../utils/destinoPostLogin';
 import type { AuthUser } from '../types';
@@ -6,9 +6,9 @@ import type { AuthUser } from '../types';
 const user: AuthUser = { id: 1, username: 'ana', nombre: 'Ana', email: 'ana@example.com', roles: ['estudiante'], es_admin_central: false, permisos: [] };
 
 describe('catálogo y autorización', () => {
-  it('declara 56 códigos únicos con el prefijo del sistema', () => {
-    expect(CATALOGO_PERMISOS).toHaveLength(56);
-    expect(new Set(CATALOGO_PERMISOS.map(p => p.codigo)).size).toBe(56);
+  it('declara 61 códigos únicos con el prefijo del sistema', () => {
+    expect(CATALOGO_PERMISOS).toHaveLength(61);
+    expect(new Set(CATALOGO_PERMISOS.map(p => p.codigo)).size).toBe(61);
     expect(CATALOGO_PERMISOS.every(p => p.codigo.startsWith(PREFIJO_PERMISOS))).toBe(true);
   });
   it('requiere cada permiso y no concede privilegios por rol o bandera administrativa', () => {

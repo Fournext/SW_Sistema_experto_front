@@ -1,4 +1,4 @@
-﻿import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import LandingPage from '@/features/landing/pages/LandingPage';
 import SistemasExpertosPage from '@/features/sistemas-expertos/pages/SistemasExpertosPage';
@@ -9,6 +9,7 @@ import EditorVisualPage from '@/features/editor-visual/pages/EditorVisualPage';
 import InferenciaPage from '@/features/inferencia/pages/InferenciaPage';
 import HistorialInferenciaPage from '@/features/inferencia/pages/HistorialInferenciaPage';
 import ValidacionPage from '@/features/validacion/pages/ValidacionPage';
+import { LaboratorioAlgoritmosPage } from '@/features/laboratorio-algoritmos';
 import ActividadesDocentePage from '@/features/actividades/pages/ActividadesDocentePage';
 import ActividadesEstudiantePage from '@/features/actividades/pages/ActividadesEstudiantePage';
 import ResolverActividadPage from '@/features/actividades/pages/ResolverActividadPage';
@@ -64,6 +65,7 @@ export const AppRouter = () => (
         <Route element={<PermisoGuard permisos={[Permisos.INFERENCIA_EJECUTAR]} />}><Route path="/sistemas/:id/inferencia" element={<InferenciaPage />} /></Route>
         <Route element={<PermisoGuard permisos={[Permisos.INFERENCIA_HISTORIAL_VER]} />}><Route path="/sistemas/:id/historial" element={<HistorialInferenciaPage />} /></Route>
         <Route element={<PermisoGuard permisos={[Permisos.VALIDACION_VER]} />}><Route path="/sistemas/:id/validacion" element={<ValidacionPage />} /></Route>
+        <Route element={<PermisoGuard permisos={[Permisos.LABORATORIO_VER]} />}><Route path="/sistemas/:id/laboratorio" element={<LaboratorioAlgoritmosPage />} /></Route>
         <Route element={<PermisoGuard permisos={[Permisos.ACTIVIDADES_VER]} />}><Route path="/actividades" element={<ActividadesDocentePage />} /></Route>
         <Route element={<PermisoGuard permisos={[Permisos.ACTIVIDADES_RESOLVER]} />}>
           <Route path="/mis-actividades" element={<ActividadesEstudiantePage />} />

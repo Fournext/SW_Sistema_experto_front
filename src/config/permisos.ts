@@ -13,6 +13,7 @@ const grupos = {
   Inferencia: ['inferencia_ejecutar', 'simulacion_iniciar', 'simulacion_controlar', 'inferencia_historial_ver', 'inferencia_trazabilidad_ver', 'inferencia_explicacion_ver'],
   Validación: ['validacion_ejecutar', 'validacion_ver'],
   Actividades: ['cursos_ver', 'cursos_crear', 'actividades_ver', 'actividades_crear', 'actividades_editar', 'actividades_eliminar', 'asignaciones_ver', 'asignaciones_crear', 'entregas_ver_todas', 'actividades_resolver', 'entregas_enviar'],
+  Laboratorio: ['laboratorio_ver', 'laboratorio_ejecutar', 'laboratorio_programas_crear', 'laboratorio_programas_editar', 'laboratorio_programas_eliminar'],
   'Admin Central': ['central_acceder', 'central_usuarios_ver', 'central_usuarios_crear', 'central_usuarios_editar', 'central_usuarios_desactivar', 'central_roles_ver', 'central_roles_crear', 'central_roles_editar', 'central_roles_eliminar', 'central_permisos_ver', 'central_sesiones_ver', 'central_sesiones_revocar', 'central_bitacora_ver'],
 } as const;
 

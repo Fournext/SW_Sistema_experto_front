@@ -13,7 +13,8 @@ import {
 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Spinner from '@/components/ui/Spinner';
-import baseConocimientoService from '@/features/base-conocimiento/services/baseConocimientoService';
+import { baseConocimientoService } from '@/features/base-conocimiento';
+import { inferirTipoDato } from '@/features/base-conocimiento/utils/inferenciaTipos';
 import type {
   Regla,
   Variable,
@@ -148,18 +149,6 @@ export const EditorPseudocodigoModal: React.FC<EditorPseudocodigoModalProps> = (
     const siguienteNum = (resultadoParseo.reglas.length || 0) + 1;
     const plantilla = `\nREGLA R${siguienteNum} [Prioridad: 10]:\n  SI X = 0\n  ENTONCES P = a\n`;
     insertarTexto(plantilla);
-  };
-
-  // Detectar tipo de dato para variables creadas al vuelo
-  const inferirTipoDato = (valor: string): TipoDato => {
-    const trimmed = valor.trim().toLowerCase();
-    if (['true', 'false', 'si', 'no', 'sí', 'verdadero', 'falso'].includes(trimmed)) {
-      return 'BOOLEANO';
-    }
-    if (trimmed !== '' && !isNaN(Number(trimmed))) {
-      return trimmed.includes('.') ? 'DECIMAL' : 'ENTERO';
-    }
-    return 'TEXTO';
   };
 
   // Compilar y guardar todas las reglas en la Base de Conocimiento

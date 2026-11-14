@@ -6,8 +6,7 @@ import {
   type Edge,
   type Node,
 } from '@xyflow/react';
-import baseConocimientoService from '@/features/base-conocimiento/services/baseConocimientoService';
-import type { Hecho, Regla, Variable } from '@/features/base-conocimiento/types/types';
+import { baseConocimientoService, type Hecho, type Regla, type Variable } from '@/features/base-conocimiento';
 import editorVisualService from '../services/editorVisualService';
 import type { FlowEdge, FlowNode, TipoNodo } from '../types/types';
 import { construirGrafoBaseConocimiento } from '../utils/grafoBaseConocimiento';

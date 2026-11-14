@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Workflow, ArrowRight, Code2, ListFilter } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import baseConocimientoService from '@/features/base-conocimiento/services/baseConocimientoService';
+import { useToast } from '@/shared/context/ToastContext';
+import { useReglasMutations } from '@/features/base-conocimiento/hooks/useBaseConocimiento';
+import { inferirTipoDato } from '@/features/base-conocimiento/utils/inferenciaTipos';
 import {
   extraerAtomosDeExpresion,
   validarSintaxisExpresionLogica,
@@ -63,22 +65,11 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { crearCompleta } = useReglasMutations(baseConocimientoId);
+  const { toastExito } = useToast();
+
   const detectarTipo = (valor: string, varNombre?: string): TipoDato => {
-    if (varNombre) {
-      const encontrada = variablesExistentes.find(
-        (v) => v.nombre.trim().toLowerCase() === varNombre.trim().toLowerCase()
-      );
-      if (encontrada?.tipo_dato) return encontrada.tipo_dato;
-      if (encontrada?.tipo) return encontrada.tipo;
-    }
-    const trimmed = valor.trim().toLowerCase();
-    if (trimmed === 'true' || trimmed === 'false' || trimmed === 'si' || trimmed === 'no') {
-      return 'BOOLEANO';
-    }
-    if (trimmed !== '' && !isNaN(Number(trimmed))) {
-      return trimmed.includes('.') ? 'DECIMAL' : 'ENTERO';
-    }
-    return 'TEXTO';
+    return inferirTipoDato(valor, varNombre, variablesExistentes, hechosExistentes);
   };
 
   useEffect(() => {
@@ -224,7 +215,7 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
 
     setGuardando(true);
     try {
-      const nuevaRegla = await baseConocimientoService.crearReglaCompleta(baseConocimientoId, {
+      const nuevaRegla = await crearCompleta.mutateAsync({
         nombre: nombre.trim(),
         prioridad: Number(prioridad) || 10,
         descripcion: descripcion.trim() || undefined,
@@ -234,6 +225,7 @@ export const CrearReglaRapidaModal: React.FC<CrearReglaRapidaModalProps> = ({
         conclusiones: conclsFiltradas,
       });
 
+      toastExito(`Regla ${nuevaRegla.nombre || nombre} creada correctamente`, 'Regla guardada');
       onReglaCreada(nuevaRegla);
       onClose();
     } catch (err: unknown) {

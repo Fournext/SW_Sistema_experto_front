@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/authStore';
+import { ToastProvider } from '@/shared/context/ToastContext';
 
 export interface AppProvidersProps {
   children: React.ReactNode;
@@ -29,7 +30,9 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>{children}</BrowserRouter>
+      </ToastProvider>
     </QueryClientProvider>
   );
 };
