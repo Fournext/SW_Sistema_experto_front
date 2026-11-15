@@ -17,6 +17,13 @@ import {
 } from 'lucide-react';
 import { useSistemaExperto, useSistemaExpertoMutations } from '../hooks/useSistemasExpertos';
 import SistemaExpertoForm from '../components/SistemaExpertoForm';
+import {
+  useBaseConocimiento,
+  useHechos,
+  useReglas,
+  useVariables,
+} from '@/features/base-conocimiento/hooks/useBaseConocimiento';
+import { ExplicacionIAPanel, iaLocalService } from '@/features/ia-local';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -30,6 +37,11 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: sistema, isLoading, isError, error, refetch } = useSistemaExperto(id);
+  const { data: baseConocimiento } = useBaseConocimiento(id);
+  const baseId = baseConocimiento?.id;
+  const { data: variables = [] } = useVariables(baseId);
+  const { data: hechos = [] } = useHechos(baseId);
+  const { data: reglas = [] } = useReglas(baseId);
   const { actualizar, eliminar } = useSistemaExpertoMutations();
   const [isEditing, setIsEditing] = useState(false);
   const confirmDialog = useConfirmDialog();
@@ -222,6 +234,19 @@ export const DetalleSistemaExpertoPage: React.FC = () => {
                 <li>Ejecuta y demuestra la resolución de problemas paso a paso en el <strong>Motor de Inferencia</strong>.</li>
               </ol>
             </div>
+
+            {/* Explicación Integral del Sistema Experto con IA Local */}
+            <ExplicacionIAPanel
+              titulo="Análisis y Explicación del Sistema Experto (IA Local)"
+              subtitulo={`Analiza ${variables.length} variable(s), ${hechos.length} hecho(s) y ${reglas.length} regla(s) directamente en tu navegador.`}
+              textoBoton="Explicar Sistema Experto"
+              onGenerar={(onToken) =>
+                iaLocalService.explicarSistemaExpertoStream(
+                  { sistema, variables, hechos, reglas },
+                  onToken
+                )
+              }
+            />
           </div>
 
           {/* Panel Lateral de Módulos Interactivos */}

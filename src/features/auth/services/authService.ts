@@ -1,5 +1,6 @@
 import axios from 'axios';
 import httpClient from '../../../services/httpClient';
+import { extraerMensajeErrorAPI } from '../../../services/apiErrorFormatter';
 import { readTokens } from '../sessionStorage';
 import type { AuthUser, LoginResponse, RegistroEstudianteData } from '../types';
 
@@ -12,28 +13,10 @@ authClient.interceptors.response.use(response => {
   return response;
 }, error => {
   const data = error.response?.data;
-  let errorMsg = '';
-  if (data?.errors && typeof data.errors === 'object') {
-    const errorList = Object.entries(data.errors).flatMap(([field, value]) => {
-      if (typeof value === 'string') return [`${field}: ${value}`];
-      if (Array.isArray(value)) return [`${field}: ${value.join(' ')}`];
-      return [];
-    });
-    if (errorList.length > 0) {
-      errorMsg = errorList.join(' · ');
-    }
-  }
-  if (!errorMsg) {
-    const detail = data?.detail || data?.message || data?.error;
-    const fields = data && typeof data === 'object'
-      ? Object.entries(data).flatMap(([field, value]) => {
-        if (typeof value === 'string') return [`${field}: ${value}`];
-        if (Array.isArray(value)) return [`${field}: ${value.join(' ')}`];
-        return [];
-      }).join(' · ')
-      : '';
-    errorMsg = typeof detail === 'string' ? detail : fields || 'No se pudo completar la autenticación. Inténtalo nuevamente.';
-  }
+  const errorMsg = extraerMensajeErrorAPI(
+    data,
+    'No se pudo completar la autenticación. Inténtalo nuevamente.'
+  );
   return Promise.reject(new Error(errorMsg));
 });
 

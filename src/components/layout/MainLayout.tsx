@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { IALocalManagerModal } from '@/features/ia-local';
 
 export const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -72,6 +73,8 @@ export const MainLayout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      <IALocalManagerModal />
     </div>
   );
 };

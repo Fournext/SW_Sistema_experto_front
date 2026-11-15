@@ -1,9 +1,10 @@
 import { Permisos } from '@/config/permisos';
 import { Permiso } from '@/shared/components/Permiso';
-import React from 'react';
-import { Edit2, Trash2, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Edit2, Trash2, ArrowRight, BookOpenCheck } from 'lucide-react';
 import type { Regla, Variable, Hecho, Condicion, Conclusion } from '../types/types';
 import Badge from '@/components/ui/Badge';
+import { ExplicacionIAPanel, iaLocalService } from '@/features/ia-local';
 
 export interface ReglaCardProps {
   regla: Regla;
@@ -22,6 +23,7 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
 }) => {
   const condiciones = regla.condiciones || [];
   const conclusiones = regla.conclusiones || [];
+  const [mostrarExplicacionIA, setMostrarExplicacionIA] = useState(false);
 
   const resolverNombreReferencia = (cond: Condicion): string => {
     const raw = cond as unknown as Record<string, unknown>;
@@ -111,6 +113,18 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
           </div>
 
           <div className="flex items-center gap-1 pl-2 border-l border-stone-200">
+            <button
+              type="button"
+              onClick={() => setMostrarExplicacionIA((prev) => !prev)}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                mostrarExplicacionIA
+                  ? 'text-teal-800 bg-teal-50 border border-teal-200'
+                  : 'text-stone-400 hover:text-teal-700 hover:bg-teal-50'
+              }`}
+              title="Explicar regla con IA Local"
+            >
+              <BookOpenCheck className="w-4 h-4" />
+            </button>
             <Permiso permisos={[Permisos.REGLAS_EDITAR]}><button
               type="button"
               onClick={() => onEdit(regla)}
@@ -225,6 +239,25 @@ export const ReglaCard: React.FC<ReglaCardProps> = ({
           </>
         )}
       </div>
+
+      {mostrarExplicacionIA && (
+        <div className="px-5 pb-5">
+          <ExplicacionIAPanel
+            compacto
+            titulo={`Explicación de ${regla.nombre}`}
+            subtitulo="Análisis lógico en lenguaje natural generado localmente en el navegador."
+            textoBoton="Explicar regla"
+            onGenerar={(onToken) =>
+              iaLocalService.explicarReglaStream(
+                regla,
+                variables || [],
+                hechos || [],
+                onToken
+              )
+            }
+          />
+        </div>
+      )}
     </div>
   );
 };

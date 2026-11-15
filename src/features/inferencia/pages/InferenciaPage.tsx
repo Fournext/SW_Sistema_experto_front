@@ -10,6 +10,7 @@ import {
   HelpCircle,
   Lightbulb,
   ShieldCheck,
+  FlaskConical,
 } from 'lucide-react';
 import type { Hecho, TipoDato } from '@/features/base-conocimiento/types/types';
 import type { EntradaTrabajo } from '@/features/actividades/types/trabajo';
@@ -51,6 +52,7 @@ import CuestionarioConsultaModal from '../components/CuestionarioConsultaModal';
 import BarraVectorHechos, { type HechoVectorItem } from '../components/BarraVectorHechos';
 import ValidacionPreviaModal, { type BloqueoValidacion } from '../components/ValidacionPreviaModal';
 import { useValidarBase } from '@/features/validacion/hooks/useValidacion';
+import { GeneradorCasosPruebaIAModal } from '@/features/ia-local';
 
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -160,6 +162,7 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
   const [validandoBC, setValidandoBC] = useState(false);
   const validacionEnCurso = useRef(false);
   const [bloqueoValidacion, setBloqueoValidacion] = useState<BloqueoValidacion | null>(null);
+  const [modalCasosPruebaIAAbierto, setModalCasosPruebaIAAbierto] = useState(false);
 
   const validarAntesDeInferir = async (): Promise<boolean> => {
     if (validacionEnCurso.current) return false;
@@ -653,6 +656,49 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
     setAccionPendiente(null);
   };
 
+  const handleEjecutarCasoPruebaIA = async (hechosVector: HechoVectorItem[]) => {
+    setVectorHechos(hechosVector);
+    const mapaTipos = new Map<string, string>();
+    variables.forEach((v) => {
+      if (v.nombre) mapaTipos.set(v.nombre.toLowerCase().trim(), v.tipo_dato || 'TEXTO');
+    });
+    const mapaPayload = new Map<string, { nombre: string; valor: string; tipo_dato?: string; opciones?: string[] }>();
+    hechosIniciales
+      .filter((h) => h.valor != null && String(h.valor).trim() !== '')
+      .forEach((h) => {
+        mapaPayload.set(h.nombre.toLowerCase().trim(), {
+          nombre: h.nombre,
+          valor: String(h.valor ?? ''),
+          tipo_dato: h.tipo_dato,
+          opciones: h.opciones,
+        });
+      });
+    hechosVector
+      .filter((vh) => vh.nombre.trim() !== '' && vh.valor.trim() !== '')
+      .forEach((vh) => {
+        const key = vh.nombre.toLowerCase().trim();
+        mapaPayload.set(key, {
+          nombre: vh.nombre,
+          valor: vh.valor,
+          tipo_dato: mapaTipos.get(key) || 'TEXTO',
+        });
+      });
+
+    const resp = await ejecutarInferencia.mutateAsync({
+      hechos_iniciales: Array.from(mapaPayload.values()),
+    });
+    setResultadoInferencia(resp);
+    const idEjecucion = resp?.id || resp?.ejecucion_id;
+    if (idEjecucion) setInferenciaIdActual(String(idEjecucion));
+
+    return {
+      conclusionFinal: resp?.conclusion_final ?? null,
+      reglasActivadas: (resp?.reglas_activadas || []).map(
+        (r) => r.nombre_regla || r.regla_nombre || (typeof r.regla === 'string' ? r.regla : r.regla?.nombre) || ''
+      ).filter(Boolean),
+    };
+  };
+
   if (restaurandoId && restauracion.isError) {
     return <ErrorMessage
       title="No se pudo recuperar la simulación"
@@ -829,6 +875,17 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
           >
             <History className="w-3.5 h-3.5 mr-1" />
             Historial
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setModalCasosPruebaIAAbierto(true)}
+            disabled={isLoading || reglas.length === 0}
+            className="text-stone-700 border-stone-200"
+          >
+            <FlaskConical className="w-3.5 h-3.5 mr-1 text-teal-700" />
+            Casos de Prueba (IA)
           </Button>
 
           <Button
@@ -1033,6 +1090,19 @@ export const InferenciaPage: React.FC<{ entradasActividad?: EntradaTrabajo[] }> 
         onConfirmar={handleConfirmarCuestionarioDirecto}
         loading={ejecutarInferencia.isPending || validandoBC}
         tituloAccion="Ejecutar Inferencia con Respuestas"
+      />
+
+      {/* Modal Generador de Casos de Prueba Completos (IA Local) */}
+      <GeneradorCasosPruebaIAModal
+        isOpen={modalCasosPruebaIAAbierto}
+        onClose={() => setModalCasosPruebaIAAbierto(false)}
+        sistemaId={String(sistemaId || '')}
+        sistema={sistema}
+        variables={variables}
+        hechos={hechosIniciales}
+        reglas={reglas}
+        onCargarVector={setVectorHechos}
+        onEjecutarCaso={puedeEjecutar ? handleEjecutarCasoPruebaIA : undefined}
       />
     </div>
   );

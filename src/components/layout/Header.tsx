@@ -3,6 +3,7 @@ import { BookOpen, Menu, ShieldCheck, LogOut, PanelLeftClose, PanelLeftOpen } fr
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Permisos, usePuede } from '../../config/permisos';
 import { useAuthStore } from '../../features/auth/authStore';
+import { IALocalHeaderBadge } from '../../features/ia-local';
 
 export interface HeaderProps {
   onToggleSidebar?: () => void;
@@ -87,6 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
+        <IALocalHeaderBadge />
         {puedeCentral && (
           <Link to="/central" className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-2 text-xs font-semibold text-teal-800 transition-colors hover:bg-teal-100" title="Admin Central">
             <ShieldCheck className="h-4 w-4" />

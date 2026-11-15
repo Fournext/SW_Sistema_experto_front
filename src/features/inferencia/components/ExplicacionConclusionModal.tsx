@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Spinner from '@/components/ui/Spinner';
 import { useExplicacionConclusion } from '../hooks/useInferencia';
+import { ExplicacionIAPanel, iaLocalService } from '@/features/ia-local';
 
 interface ExplicacionConclusionModalProps {
   isOpen: boolean;
@@ -157,6 +158,17 @@ export const ExplicacionConclusionModal: React.FC<ExplicacionConclusionModalProp
                 </ol>
               </div>
             )}
+
+            {/* 4. Explicación Narrativa con IA Local */}
+            <ExplicacionIAPanel
+              compacto
+              titulo="Explicación Narrativa en Lenguaje Natural (IA Local)"
+              subtitulo="Redacta una justificación didáctica basada exclusivamente en esta traza determinista."
+              textoBoton="Redactar con IA Local"
+              onGenerar={(onToken) =>
+                iaLocalService.explicarTrazaInferenciaStream(explicacion, onToken)
+              }
+            />
           </>
         )}
 

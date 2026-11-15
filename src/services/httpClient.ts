@@ -1,6 +1,7 @@
-﻿import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { authStore, getSessionVersion } from '../features/auth/authStore';
 import { authService } from '../features/auth/services/authService';
+import { extraerMensajeErrorAPI } from './apiErrorFormatter';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
@@ -79,9 +80,10 @@ httpClient.interceptors.response.use(
       redirectToLogin();
     }
     const data = error.response?.data;
-    const message = data?.detail || data?.error || data?.message || (error.request
+    const fallback = error.request && !error.response
       ? `No se pudo conectar con el servidor. Verifica que esté ejecutándose en ${API_BASE_URL}`
-      : 'Ocurrió un error inesperado en la comunicación con el servidor.');
+      : 'Ocurrió un error inesperado en la comunicación con el servidor.';
+    const message = extraerMensajeErrorAPI(data, fallback);
     return Promise.reject(new Error(message));
   },
 );

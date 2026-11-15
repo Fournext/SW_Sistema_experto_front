@@ -1,11 +1,12 @@
 import { Permisos, usePuede } from '@/config/permisos';
 import { Permiso } from '@/shared/components/Permiso';
 import React, { useState, useMemo } from 'react';
-import { Plus, Workflow } from 'lucide-react';
+import { Plus, Workflow, Cpu } from 'lucide-react';
 import { useReglas, useVariables, useHechos, useReglasMutations } from '../hooks/useBaseConocimiento';
 import type { Regla } from '../types/types';
 import ReglaCard from './ReglaCard';
 import ReglaEditorModal from './ReglaEditorModal';
+import { GeneradorReglasIAModal } from '@/features/ia-local';
 import Button from '@/components/ui/Button';
 import Spinner from '@/components/ui/Spinner';
 import EmptyState from '@/components/feedback/EmptyState';
@@ -24,6 +25,7 @@ export const ReglasSection: React.FC<ReglasSectionProps> = ({ baseConocimientoId
   const { eliminar } = useReglasMutations(baseConocimientoId);
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [modalIAOpen, setModalIAOpen] = useState(false);
   const [reglaAEditarId, setReglaAEditarId] = useState<string | number | null>(null);
   const confirmDialog = useConfirmDialog();
   const puedeCrear = usePuede(Permisos.REGLAS_CREAR);
@@ -96,14 +98,26 @@ export const ReglasSection: React.FC<ReglasSectionProps> = ({ baseConocimientoId
           </p>
         </div>
 
-        <Permiso permisos={[Permisos.REGLAS_CREAR]}><Button
-          variant="primary"
-          size="sm"
-          icon={<Plus className="w-4 h-4" />}
-          onClick={handleCrear}
-        >
-          Crear Regla
-        </Button></Permiso>
+        <div className="flex flex-wrap items-center gap-2">
+          <Permiso permisos={[Permisos.REGLAS_CREAR]}>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Cpu className="w-4 h-4 text-teal-700" />}
+              onClick={() => setModalIAOpen(true)}
+            >
+              Generar con IA Local
+            </Button>
+          </Permiso>
+          <Permiso permisos={[Permisos.REGLAS_CREAR]}><Button
+            variant="primary"
+            size="sm"
+            icon={<Plus className="w-4 h-4" />}
+            onClick={handleCrear}
+          >
+            Crear Regla
+          </Button></Permiso>
+        </div>
       </div>
 
       {/* Lista de Reglas o Empty State */}
@@ -142,6 +156,16 @@ export const ReglasSection: React.FC<ReglasSectionProps> = ({ baseConocimientoId
         variables={variables}
         hechos={hechos}
         defaultNextNumber={nextNumber}
+      />
+
+      {/* Modal Generador de Reglas con IA Local */}
+      <GeneradorReglasIAModal
+        isOpen={modalIAOpen}
+        onClose={() => setModalIAOpen(false)}
+        baseConocimientoId={baseConocimientoId}
+        variables={variables || []}
+        hechos={hechos || []}
+        reglas={reglas || []}
       />
 
       {/* Confirmación para eliminar */}
