@@ -124,6 +124,7 @@ export const actividadesService = {
       hechos_ingresados?: Array<{ nombre: string; valor: unknown }>;
       ejecucion_inferencia_id?: string | null;
       ejecuciones_ids?: string[];
+      programa_algoritmo_id?: string | null;
     }
   ): Promise<EntregaActividad> {
     const response = await httpClient.post<unknown>(
@@ -140,6 +141,7 @@ export const actividadesService = {
       hechos_ingresados?: Array<{ nombre: string; valor: unknown }>;
       ejecucion_inferencia_id?: string | null;
       ejecuciones_ids?: string[];
+      programa_algoritmo_id?: string | null;
     }
   ): Promise<EntregaActividad> {
     const response = await httpClient.post<unknown>(
