@@ -198,9 +198,51 @@ export function useEjecucionLaboratorio({
   };
 
   const baseHechosRuntime = (buscarVariableEnFrames('BH') as any) || null;
-  const pilaHNRuntime = (buscarVariableEnFrames('HN') as any) || null;
-  const colaQRuntime = (buscarVariableEnFrames('Q') as any) || null;
-  const listaMetasRuntime = (buscarVariableEnFrames('Metas') || buscarVariableEnFrames('metas') as any) || null;
+
+  // Buscar Pila: prioridad 'HN'/'hn', si no, cualquier variable de tipo 'Pila' en los frames
+  let pilaHNRuntime = (buscarVariableEnFrames('HN') as any) || null;
+  if (!pilaHNRuntime && estadoVM?.frames) {
+    for (let i = estadoVM.frames.length - 1; i >= 0; i--) {
+      const vars = estadoVM.frames[i].variables || {};
+      for (const [k, v] of Object.entries(vars)) {
+        if (v && typeof v === 'object' && (v as any).tipo_objeto === 'Pila') {
+          pilaHNRuntime = { ...(v as any), nombreVariable: k };
+          break;
+        }
+      }
+      if (pilaHNRuntime) break;
+    }
+  }
+
+  // Buscar Cola: prioridad 'Q'/'q', si no, cualquier variable de tipo 'Cola' en los frames
+  let colaQRuntime = (buscarVariableEnFrames('Q') as any) || null;
+  if (!colaQRuntime && estadoVM?.frames) {
+    for (let i = estadoVM.frames.length - 1; i >= 0; i--) {
+      const vars = estadoVM.frames[i].variables || {};
+      for (const [k, v] of Object.entries(vars)) {
+        if (v && typeof v === 'object' && (v as any).tipo_objeto === 'Cola') {
+          colaQRuntime = { ...(v as any), nombreVariable: k };
+          break;
+        }
+      }
+      if (colaQRuntime) break;
+    }
+  }
+
+  // Buscar Lista/Metas: prioridad 'Metas'/'metas', si no, cualquier variable de tipo 'Lista'
+  let listaMetasRuntime = (buscarVariableEnFrames('Metas') || (buscarVariableEnFrames('metas') as any)) || null;
+  if (!listaMetasRuntime && estadoVM?.frames) {
+    for (let i = estadoVM.frames.length - 1; i >= 0; i--) {
+      const vars = estadoVM.frames[i].variables || {};
+      for (const [k, v] of Object.entries(vars)) {
+        if (v && typeof v === 'object' && (v as any).tipo_objeto === 'Lista') {
+          listaMetasRuntime = { ...(v as any), nombreVariable: k };
+          break;
+        }
+      }
+      if (listaMetasRuntime) break;
+    }
+  }
 
   return {
     codigo,
