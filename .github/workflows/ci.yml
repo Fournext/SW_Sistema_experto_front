@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    name: Tests & Build (Front)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Ejecutar tests (Vitest)
+        run: npm test
+
+      - name: Verificar build y tipos (tsc + Vite)
+        run: npm run build
