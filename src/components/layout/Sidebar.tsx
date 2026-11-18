@@ -76,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div>
               <span className="font-bold text-stone-900 text-base tracking-tight block font-serif">
-                SE-Docente
+                ExpertEdu Studio
               </span>
               <span className="text-[11px] text-stone-500 font-medium block">
                 Sistemas Expertos v2.0
@@ -228,7 +228,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Footer info */}
         <div className="p-4 border-t border-stone-100 bg-stone-50/60">
           <div className="text-[11px] text-stone-500 text-center">
-            Software de Apoyo a Sistemas Expertos
+            ExpertEdu Studio
             <span className="block text-stone-400 font-mono text-[10px] mt-0.5">Módulo de Inferencia y Didáctica</span>
           </div>
         </div>

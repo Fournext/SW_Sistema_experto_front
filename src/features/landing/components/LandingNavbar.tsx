@@ -38,12 +38,12 @@ export const LandingNavbar: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-lg text-stone-800 tracking-tight flex items-center gap-1.5 font-sans">
-              ExpertoLab
+              ExpertEdu Studio
               <span className="text-[10px] font-semibold tracking-wider uppercase bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-200/60">
                 Docente
               </span>
             </span>
-            <span className="text-[11px] text-stone-500 font-medium">Sistemas Expertos Interativos</span>
+            <span className="text-[11px] text-stone-500 font-medium">Sistemas Expertos Interactivos</span>
           </div>
         </Link>
 

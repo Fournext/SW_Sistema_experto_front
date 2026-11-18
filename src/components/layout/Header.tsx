@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <h1 className="text-sm font-bold text-stone-900 leading-tight font-serif">
-              {sistemaNombre ? sistemaNombre : 'Sistema Experto'}
+              {sistemaNombre ? sistemaNombre : 'ExpertEdu Studio'}
             </h1>
             <p className="text-xs text-stone-500 leading-tight hidden sm:block">
               {getSectionTitle()}
