@@ -39,7 +39,7 @@ describe('ExplicacionConclusionModal', () => {
   it('muestra la explicación recibida por el servicio, con hechos y reglas', async () => {
     vi.mocked(httpClient.get).mockResolvedValue({ data: { data: respuesta } });
     abrir();
-    expect(await screen.findByRole('heading', { level: 4 })).toHaveTextContent('Problema Detectado = WiFi desactivado');
+    expect(await screen.findByRole('heading', { level: 4, name: 'Problema Detectado = WiFi desactivado' })).toBeInTheDocument();
     expect(httpClient.get).toHaveBeenCalledWith('/ejecuciones/ejecucion/explicacion/');
     expect(screen.getByText(respuesta.resumen_explicativo)).toBeInTheDocument();
     expect(screen.getByText('Wifi Activo')).toBeInTheDocument();
