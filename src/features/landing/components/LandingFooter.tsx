@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Cpu, ArrowUp } from 'lucide-react';
+import { CORPORATE_LANDING_URL } from '@/config/legal';
 
 export const LandingFooter: React.FC = () => {
   const scrollToTop = () => {
@@ -72,13 +73,24 @@ export const LandingFooter: React.FC = () => {
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
           <p>© {new Date().getFullYear()} ExpertEdu Studio. Herramienta Educativa Universitaria.</p>
 
-          <button
-            onClick={scrollToTop}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 transition-colors cursor-pointer"
-          >
-            <span>Volver arriba</span>
-            <ArrowUp className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link to="/terminos" className="hover:text-teal-400 transition-colors">
+              Términos y Condiciones
+            </Link>
+            <Link to="/privacidad" className="hover:text-teal-400 transition-colors">
+              Política de Privacidad
+            </Link>
+            <a href={CORPORATE_LANDING_URL} className="hover:text-teal-400 transition-colors">
+              Volver a ExpertEdu
+            </a>
+            <button
+              onClick={scrollToTop}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-300 transition-colors cursor-pointer"
+            >
+              <span>Volver arriba</span>
+              <ArrowUp className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </footer>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { BookOpen, Menu, ShieldCheck, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { BookOpen, ExternalLink, Menu, ShieldCheck, LogOut, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { CORPORATE_LANDING_URL } from '../../config/legal';
 import { Permisos, usePuede } from '../../config/permisos';
 import { useAuthStore } from '../../features/auth/authStore';
 import { IALocalHeaderBadge } from '../../features/ia-local';
@@ -89,6 +90,14 @@ export const Header: React.FC<HeaderProps> = ({
 
       <div className="flex items-center gap-2 sm:gap-3">
         <IALocalHeaderBadge />
+        <a
+          href={CORPORATE_LANDING_URL}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-2.5 py-2 text-xs font-semibold text-stone-700 transition-colors hover:bg-stone-100"
+          title="Volver a ExpertEdu"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          <span className="hidden md:inline">Volver a ExpertEdu</span>
+        </a>
         {puedeCentral && (
           <Link to="/central" className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-2 text-xs font-semibold text-teal-800 transition-colors hover:bg-teal-100" title="Admin Central">
             <ShieldCheck className="h-4 w-4" />

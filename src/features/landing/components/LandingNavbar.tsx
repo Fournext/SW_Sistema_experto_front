@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Cpu, ArrowRight, Menu, X, BookOpen, Layers, Zap } from 'lucide-react';
+import { Cpu, ArrowRight, ExternalLink, Menu, X, BookOpen, Layers, Zap } from 'lucide-react';
+import { CORPORATE_LANDING_URL } from '@/config/legal';
 
 export const LandingNavbar: React.FC = () => {
   const navigate = useNavigate();
@@ -74,6 +75,13 @@ export const LandingNavbar: React.FC = () => {
 
         {/* CTA Button */}
         <div className="hidden md:flex items-center gap-3">
+          <a
+            href={CORPORATE_LANDING_URL}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 font-semibold text-sm transition-colors"
+          >
+            <span>Volver a ExpertEdu</span>
+            <ExternalLink className="w-4 h-4" />
+          </a>
           <button
             onClick={() => navigate('/central/login')}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-700 to-teal-600 hover:from-teal-800 hover:to-teal-700 text-white font-semibold text-sm shadow-md shadow-teal-700/20 hover:shadow-lg hover:shadow-teal-700/30 transition-all duration-300 transform active:scale-95 cursor-pointer"

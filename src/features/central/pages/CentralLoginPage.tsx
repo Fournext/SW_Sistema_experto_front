@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ExternalLink, ShieldCheck } from 'lucide-react';
+import { CORPORATE_LANDING_URL } from '@/config/legal';
 import AuthLayout from '../components/AuthLayout';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
@@ -42,5 +43,14 @@ export default function CentralLoginPage() {
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       <Button type="submit" loading={isSubmitting} disabled={status === 'cargando'} className="w-full" size="lg" icon={<ArrowRight size={18} />} iconPosition="right">Ingresar a la plataforma</Button>
     </form>
+    <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-stone-200 pt-4 text-xs text-stone-500">
+      <div className="flex flex-wrap gap-3">
+        <Link to="/terminos" className="hover:text-teal-700 hover:underline">Términos y Condiciones</Link>
+        <Link to="/privacidad" className="hover:text-teal-700 hover:underline">Política de Privacidad</Link>
+      </div>
+      <a href={CORPORATE_LANDING_URL} className="inline-flex items-center gap-1 font-semibold text-teal-700 hover:underline">
+        Volver a ExpertEdu <ExternalLink size={13} />
+      </a>
+    </div>
   </AuthLayout>;
 }

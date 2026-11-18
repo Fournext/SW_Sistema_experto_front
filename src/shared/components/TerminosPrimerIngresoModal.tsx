@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
+import { ExternalLink } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/authStore';
 import { authService } from '@/features/auth/services/authService';
+import { CORPORATE_LANDING_URL, PRIVACY_SECTIONS, TERMS_SECTIONS } from '@/config/legal';
 
 export const TerminosPrimerIngresoModal: React.FC = () => {
   const user = useAuthStore((s) => s.user);
   const actualizarUsuario = useAuthStore((s) => s.actualizarUsuario);
   const logout = useAuthStore((s) => s.logout);
 
+  const [tab, setTab] = useState<'terminos' | 'privacidad'>('terminos');
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -14,7 +17,9 @@ export const TerminosPrimerIngresoModal: React.FC = () => {
   const handleAccept = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accepted) {
-      setError('Debes marcar la casilla para aceptar los Términos y Condiciones antes de ingresar.');
+      setError(
+        'Debes marcar la casilla para aceptar los Términos y Condiciones y la Política de Privacidad.',
+      );
       return;
     }
     setError('');
@@ -29,15 +34,26 @@ export const TerminosPrimerIngresoModal: React.FC = () => {
     }
   };
 
+  const activeSections = tab === 'terminos' ? TERMS_SECTIONS : PRIVACY_SECTIONS;
+
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-lg overflow-hidden">
         <div className="border-b border-slate-200 bg-slate-900 px-6 py-5 text-white">
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
-            Primer ingreso a ExpertEdu Studio
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400">
+              Primer ingreso a ExpertEdu Studio
+            </p>
+            <a
+              href={CORPORATE_LANDING_URL}
+              className="inline-flex items-center gap-1 text-xs font-medium text-slate-300 hover:text-white"
+            >
+              Volver a ExpertEdu
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
           <h1 className="mt-1 text-xl font-bold">
-            Uso académico, inteligencia artificial y responsabilidad del usuario
+            Términos y Condiciones y Política de Privacidad
           </h1>
           <p className="mt-1 text-xs text-slate-300">
             Usuario: {user?.username} ({user?.email}) — Aceptación obligatoria para continuar.
@@ -45,63 +61,58 @@ export const TerminosPrimerIngresoModal: React.FC = () => {
         </div>
 
         <form onSubmit={handleAccept} className="p-6 space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setTab('terminos')}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold ${
+                  tab === 'terminos'
+                    ? 'bg-blue-700 text-white'
+                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Términos y Condiciones ({TERMS_SECTIONS.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab('privacidad')}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold ${
+                  tab === 'privacidad'
+                    ? 'bg-blue-700 text-white'
+                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                Política de Privacidad ({PRIVACY_SECTIONS.length})
+              </button>
+            </div>
+
+            <a
+              href={
+                tab === 'terminos'
+                  ? `${CORPORATE_LANDING_URL}/terminos`
+                  : `${CORPORATE_LANDING_URL}/privacidad`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline"
+            >
+              Abrir en la web de ExpertEdu
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+
           <div className="max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-700 space-y-3">
-            <div>
-              <p className="font-bold text-slate-900">1. Finalidad de la plataforma</p>
-              <p>
-                ExpertEdu Studio es una plataforma educativa destinada a apoyar la enseñanza y el
-                aprendizaje de Sistemas Expertos mediante herramientas interactivas para la
-                creación, edición, ejecución, simulación y validación de bases de conocimiento.
-                Constituye un recurso de apoyo pedagógico y no sustituye la orientación, supervisión
-                ni evaluación realizada por un docente.
-              </p>
-            </div>
-            <div>
-              <p className="font-bold text-slate-900">2. Responsabilidades del docente</p>
-              <p>
-                El docente es responsable de supervisar los contenidos académicos, configurar las
-                actividades, verificar la coherencia de las bases de conocimiento utilizadas y
-                revisar los resultados de las evaluaciones. La publicación de actividades y la
-                asignación de calificaciones permanecen bajo responsabilidad docente.
-              </p>
-            </div>
-            <div>
-              <p className="font-bold text-slate-900">3. Uso de inteligencia artificial</p>
-              <p>
-                ExpertEdu podrá proporcionar asistencia mediante inteligencia artificial para sugerir
-                hechos, variables, reglas de producción, ejemplos y explicaciones. Los contenidos
-                generados automáticamente pueden presentar errores o imprecisiones y deberán
-                considerarse propuestas sujetas a revisión y validación humana.
-              </p>
-            </div>
-            <div>
-              <p className="font-bold text-slate-900">4. Resultados del motor de inferencia</p>
-              <p>
-                El motor de inferencia procesa los hechos y reglas definidos en cada base de
-                conocimiento. La validez de las conclusiones depende de la correcta formulación de
-                las reglas e integridad de los hechos iniciales; la ejecución satisfactoria no
-                implica automáticamente validez respecto al dominio real sin revisión experta.
-              </p>
-            </div>
-            <div>
-              <p className="font-bold text-slate-900">5. Uso responsable de la plataforma</p>
-              <p>
-                Los usuarios deben utilizar ExpertEdu exclusivamente para actividades autorizadas.
-                Queda prohibida la manipulación no autorizada de evaluaciones, la suplantación de
-                identidad y cualquier actividad destinada a comprometer la seguridad o el
-                funcionamiento del servicio.
-              </p>
-            </div>
-            <div>
-              <p className="font-bold text-slate-900">
-                6. Privacidad y protección de información académica
-              </p>
-              <p>
-                Los datos personales y académicos se tratan conforme a la Política de Privacidad de
-                ExpertEdu Solutions S.R.L., y los contenidos enviados a servicios externos de
-                inteligencia artificial quedan sujetos a las condiciones aplicables.
-              </p>
-            </div>
+            {activeSections.map((sec) => (
+              <div key={sec.title}>
+                <p className="font-bold text-slate-900">{sec.title}</p>
+                {sec.paragraphs.map((p, idx) => (
+                  <p key={idx} className="mt-1">
+                    {p}
+                  </p>
+                ))}
+              </div>
+            ))}
           </div>
 
           {error && (
@@ -119,8 +130,24 @@ export const TerminosPrimerIngresoModal: React.FC = () => {
             />
             <span>
               He leído y acepto obligatoriamente los{' '}
-              <strong>Términos y Condiciones de Uso</strong> y la{' '}
-              <strong>Política de Privacidad</strong> para acceder a ExpertEdu Studio.
+              <a
+                href={`${CORPORATE_LANDING_URL}/terminos`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-blue-700 underline"
+              >
+                Términos y Condiciones de Uso
+              </a>{' '}
+              y la{' '}
+              <a
+                href={`${CORPORATE_LANDING_URL}/privacidad`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-blue-700 underline"
+              >
+                Política de Privacidad
+              </a>{' '}
+              para acceder a ExpertEdu Studio.
             </span>
           </label>
 
