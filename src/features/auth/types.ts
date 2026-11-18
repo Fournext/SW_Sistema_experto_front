@@ -5,6 +5,8 @@ export interface AuthUser {
   nombre: string;
   roles: string[];
   es_admin_central: boolean;
+  terminos_aceptados?: boolean;
+  terminos_aceptados_en?: string | null;
   permisos: string[];
 }
 

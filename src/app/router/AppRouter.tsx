@@ -22,7 +22,7 @@ import AuthGuard from '@/shared/guards/AuthGuard';
 import PermisoGuard from '@/shared/guards/PermisoGuard';
 import { Permisos } from '@/config/permisos';
 import CentralLoginPage from '@/features/central/pages/CentralLoginPage';
-import RegistroEstudiantePage from '@/features/central/pages/RegistroEstudiantePage';
+import SsoCallbackPage from '@/features/central/pages/SsoCallbackPage';
 import CentralLayout from '@/features/central/components/CentralLayout';
 import PanelPage from '@/features/central/pages/PanelPage';
 import UsuariosPage from '@/features/central/pages/UsuariosPage';
@@ -35,7 +35,8 @@ export const AppRouter = () => (
   <Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/central/login" element={<CentralLoginPage />} />
-    <Route path="/registro-estudiante" element={<RegistroEstudiantePage />} />
+    <Route path="/sso-callback" element={<SsoCallbackPage />} />
+    <Route path="/registro-estudiante" element={<Navigate to="/central/login" replace />} />
     <Route element={<AuthGuard />}>
       <Route element={<PermisoGuard permisos={[Permisos.CENTRAL_ACCEDER]} />}>
         <Route path="/central" element={<CentralLayout />}>

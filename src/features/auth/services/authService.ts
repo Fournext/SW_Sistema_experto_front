@@ -36,6 +36,9 @@ export const authService = {
   async obtenerYo(): Promise<AuthUser> {
     return (await httpClient.get<AuthUser>('/auth/yo/')).data;
   },
+  async aceptarTerminos(): Promise<AuthUser> {
+    return (await httpClient.post<AuthUser>('/auth/aceptar-terminos/', { aceptado: true })).data;
+  },
   async logout(tokens = readTokens()): Promise<void> {
     await authClient.post('/auth/logout/', { refresh: tokens.refreshToken }, {
       headers: tokens.accessToken ? { Authorization: `Bearer ${tokens.accessToken}` } : undefined,

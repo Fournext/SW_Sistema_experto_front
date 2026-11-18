@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -42,6 +42,5 @@ export default function CentralLoginPage() {
       {error && <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</p>}
       <Button type="submit" loading={isSubmitting} disabled={status === 'cargando'} className="w-full" size="lg" icon={<ArrowRight size={18} />} iconPosition="right">Ingresar a la plataforma</Button>
     </form>
-    <div className="mt-8 border-t border-stone-200 pt-6 text-center text-sm text-stone-500">¿Eres estudiante? <Link className="font-semibold text-teal-800 underline underline-offset-4" to={params.get('next') ? `/registro-estudiante?next=${encodeURIComponent(params.get('next')!)}` : '/registro-estudiante'}>Regístrate aquí</Link></div>
   </AuthLayout>;
 }
