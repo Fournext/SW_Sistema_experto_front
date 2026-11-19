@@ -13,7 +13,6 @@ import {
   Eye,
   AlertTriangle,
   Layers,
-  Lock,
   BookmarkCheck,
   CheckCheck,
   X,
@@ -106,7 +105,6 @@ export const PanelWorkflowInferencia: React.FC<PanelWorkflowInferenciaProps> = (
   vectorHechos,
   onActualizarVectorHechos,
   sugerenciasVariables = [],
-  totalReglas = 0,
   onCerrarPanel,
 }) => {
   const [bhColapsada, setBhColapsada] = useState(false);
