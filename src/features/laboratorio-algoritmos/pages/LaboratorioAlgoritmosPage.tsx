@@ -512,7 +512,7 @@ export const LaboratorioAlgoritmosPage: React.FC = () => {
         </div>
 
         {/* Columna Derecha: Inspector de Memoria Organizado en Pestañas */}
-        <div className="flex w-96 flex-col overflow-hidden">
+        <div className="flex w-[440px] xl:w-[480px] shrink-0 flex-col overflow-hidden">
           <PanelInspectorMemoria
             frame={frameActual}
             baseHechos={baseHechosRuntime}

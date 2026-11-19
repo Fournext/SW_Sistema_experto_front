@@ -39,12 +39,12 @@ export const PanelInspectorMemoria: React.FC<PanelInspectorMemoriaProps> = ({
   return (
     <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70 shadow-lg">
       {/* Cabecera de Pestañas */}
-      <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/90 px-3 py-1.5 shrink-0">
-        <div className="flex items-center gap-1 overflow-x-auto">
+      <div className="border-b border-slate-800 bg-slate-900/90 px-2.5 py-2 shrink-0">
+        <div className="grid grid-cols-3 gap-1.5">
           <button
             type="button"
             onClick={() => setPestañaActiva('memoria')}
-            className={`flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
               pestañaActiva === 'memoria'
                 ? 'bg-indigo-950 text-indigo-300 border-indigo-800/80 shadow-sm'
                 : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -62,7 +62,7 @@ export const PanelInspectorMemoria: React.FC<PanelInspectorMemoriaProps> = ({
           <button
             type="button"
             onClick={() => setPestañaActiva('reglas')}
-            className={`flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
               pestañaActiva === 'reglas'
                 ? 'bg-indigo-950 text-indigo-300 border-indigo-800/80 shadow-sm'
                 : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -80,7 +80,7 @@ export const PanelInspectorMemoria: React.FC<PanelInspectorMemoriaProps> = ({
           <button
             type="button"
             onClick={() => setPestañaActiva('estructuras')}
-            className={`flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
+            className={`flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
               pestañaActiva === 'estructuras'
                 ? 'bg-indigo-950 text-indigo-300 border-indigo-800/80 shadow-sm'
                 : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
@@ -95,10 +95,6 @@ export const PanelInspectorMemoria: React.FC<PanelInspectorMemoriaProps> = ({
             )}
           </button>
         </div>
-
-        <span className="hidden xl:inline text-[10px] uppercase tracking-wider font-mono text-slate-500 shrink-0">
-          Inspector
-        </span>
       </div>
 
       {/* Contenido según la pestaña activa */}
