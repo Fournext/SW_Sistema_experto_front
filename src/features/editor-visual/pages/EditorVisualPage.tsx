@@ -7,7 +7,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ArrowLeft, Database, Network, PlayCircle } from 'lucide-react';
+import { ArrowLeft, Database, Network, PlayCircle, Zap } from 'lucide-react';
 import { Permisos, usePuede } from '@/config/permisos';
 import { useActividadNavigate } from '@/hooks/useActividadNavigate';
 import { Permiso } from '@/shared/components/Permiso';
@@ -126,6 +126,15 @@ export const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId
   const [modalPseudocodigoAbierto, setModalPseudocodigoAbierto] = useState(false);
   const [mostrarPanelOrden, setMostrarPanelOrden] = useState(false);
   const [mostrarVectorHechos, setMostrarVectorHechos] = useState(true);
+  const [mostrarPanelSimulacion, setMostrarPanelSimulacion] = useState(true);
+
+  const handleCambiarModoEditor = (nuevoModo: 'DISENO' | 'SIMULACION') => {
+    setModoEditor(nuevoModo);
+    if (nuevoModo === 'SIMULACION') {
+      setMostrarPanelSimulacion(true);
+      cerrarPanel();
+    }
+  };
 
   const siguienteNumeroRegla = useMemo(() => {
     if (!reglas || reglas.length === 0) return 1;
@@ -331,11 +340,11 @@ export const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId
         </div>
       </div>
 
-      {/* Barra de herramientas y paneles superiores */}
+      {/* Barra de herramientas superior */}
       <div className="shrink-0 space-y-2">
         <EditorToolbar
           modoEditor={modoEditor}
-          onChangeModoEditor={setModoEditor}
+          onChangeModoEditor={handleCambiarModoEditor}
           onAgregarNodo={handleAgregarNodo}
           onGuardarPosiciones={handleGuardarPosiciones}
           onCentrarVista={() => fitView({ padding: 0.2 })}
@@ -349,39 +358,9 @@ export const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId
           onTogglePanelOrden={() => setMostrarPanelOrden((prev) => !prev)}
           mostrarVectorHechos={mostrarVectorHechos}
           onToggleVectorHechos={() => setMostrarVectorHechos((prev) => !prev)}
+          mostrarPanelSimulacion={mostrarPanelSimulacion}
+          onTogglePanelSimulacion={() => setMostrarPanelSimulacion((prev) => !prev)}
         />
-
-        {modoEditor === 'SIMULACION' && (
-          <div className="space-y-2">
-            {mostrarVectorHechos && (
-              <BarraVectorHechos
-                hechos={vectorHechos}
-                onActualizarHechos={setVectorHechos}
-                onEjecutarInferencia={handleEjecutarInferenciaDirecta}
-                ejecutando={ejecutandoInferencia}
-                sugerenciasVariables={variables.map((v) => v.nombre)}
-                totalReglas={reglas.length}
-              />
-            )}
-
-            <PanelWorkflowInferencia
-              pasos={pasosWorkflow}
-              pasoActualIndex={pasoActualWorkflowIndex}
-              onCambiarPaso={handleCambiarPasoWorkflow}
-              onEjecutarDirecto={handleEjecutarInferenciaDirecta}
-              onIniciarPasoAPaso={handleIniciarSimulacionPasoAPaso}
-              onReiniciar={handleReiniciarSimulacion}
-              onEnfocarRegla={(rId) => handleSeleccionarRegla(rId)}
-              ejecutando={ejecutandoInferencia}
-              conclusionFinal={conclusionFinalWorkflow}
-              modoEjecucion={modoEjecucionWorkflow}
-              onCambiarModoEjecucion={setModoEjecucionWorkflow}
-              metas={metasFWC}
-              onMetasChange={setMetasFWC}
-              variablesDisponibles={variables.map((v) => ({ id: String(v.id), nombre: v.nombre }))}
-            />
-          </div>
-        )}
 
         {modoEditor === 'DISENO' && mostrarVectorHechos && (
           <BarraVectorHechos
@@ -429,14 +408,55 @@ export const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId
           onIrABaseConocimiento={() => navigate(`/sistemas/${sistemaId}/base-conocimiento`)}
         />
 
-        <PanelPropiedades
-          onGuardarPropiedades={handleGuardarPropiedades}
-          onEliminarNodo={handleEliminarNodo}
-          guardando={guardando}
-          variables={variables}
-          hechos={hechos}
-          reglas={reglas}
-        />
+        {/* Panel de Propiedades del Nodo */}
+        {(modoEditor === 'DISENO' || !mostrarPanelSimulacion) && (
+          <PanelPropiedades
+            onGuardarPropiedades={handleGuardarPropiedades}
+            onEliminarNodo={handleEliminarNodo}
+            guardando={guardando}
+            variables={variables}
+            hechos={hechos}
+            reglas={reglas}
+          />
+        )}
+
+        {/* Panel Lateral Derecho: Simulador FWC */}
+        {modoEditor === 'SIMULACION' && mostrarPanelSimulacion && (
+          <PanelWorkflowInferencia
+            pasos={pasosWorkflow}
+            pasoActualIndex={pasoActualWorkflowIndex}
+            onCambiarPaso={handleCambiarPasoWorkflow}
+            onEjecutarDirecto={handleEjecutarInferenciaDirecta}
+            onIniciarPasoAPaso={handleIniciarSimulacionPasoAPaso}
+            onReiniciar={handleReiniciarSimulacion}
+            onEnfocarRegla={(rId) => handleSeleccionarRegla(rId)}
+            ejecutando={ejecutandoInferencia}
+            conclusionFinal={conclusionFinalWorkflow}
+            modoEjecucion={modoEjecucionWorkflow}
+            onCambiarModoEjecucion={setModoEjecucionWorkflow}
+            metas={metasFWC}
+            onMetasChange={setMetasFWC}
+            variablesDisponibles={variables.map((v) => ({ id: String(v.id), nombre: v.nombre }))}
+            vectorHechos={vectorHechos}
+            onActualizarVectorHechos={setVectorHechos}
+            sugerenciasVariables={variables.map((v) => v.nombre)}
+            totalReglas={reglas.length}
+            onCerrarPanel={() => setMostrarPanelSimulacion(false)}
+          />
+        )}
+
+        {/* Pestaña flotante para reabrir el panel del simulador si fue colapsado */}
+        {modoEditor === 'SIMULACION' && !mostrarPanelSimulacion && (
+          <button
+            type="button"
+            onClick={() => setMostrarPanelSimulacion(true)}
+            className="fixed top-28 right-4 z-20 px-3 py-1.5 rounded-l-xl bg-slate-900 text-amber-300 font-bold text-xs shadow-lg border border-slate-700 flex items-center gap-1.5 hover:bg-slate-800 transition-all cursor-pointer"
+            title="Abrir panel del simulador FWC"
+          >
+            <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+            Simulador FWC
+          </button>
+        )}
       </div>
 
       {/* Modales de Regla Rápida y Pseudocódigo */}

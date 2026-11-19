@@ -33,6 +33,8 @@ export interface EditorToolbarProps {
   onTogglePanelOrden?: () => void;
   mostrarVectorHechos?: boolean;
   onToggleVectorHechos?: () => void;
+  mostrarPanelSimulacion?: boolean;
+  onTogglePanelSimulacion?: () => void;
 }
 
 export const EditorToolbar: React.FC<EditorToolbarProps> = ({
@@ -50,6 +52,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   onTogglePanelOrden,
   mostrarVectorHechos = false,
   onToggleVectorHechos,
+  mostrarPanelSimulacion = true,
+  onTogglePanelSimulacion,
 }) => {
   return (
     <div className="bg-white border border-slate-200/90 rounded-lg p-2 shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
@@ -158,6 +162,22 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           >
             <Layers className="w-3.5 h-3.5 text-emerald-600" />
             Vector BH
+          </button>
+        )}
+
+        {modoEditor === 'SIMULACION' && onTogglePanelSimulacion && (
+          <button
+            type="button"
+            onClick={onTogglePanelSimulacion}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border transition-all cursor-pointer ${
+              mostrarPanelSimulacion
+                ? 'bg-indigo-50 border-indigo-300 text-indigo-900 shadow-inner'
+                : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
+            }`}
+            title="Mostrar / Ocultar panel lateral del simulador FWC"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            Panel FWC
           </button>
         )}
       </div>
