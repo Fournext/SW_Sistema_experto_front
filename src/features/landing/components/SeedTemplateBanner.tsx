@@ -42,7 +42,7 @@ export const SeedTemplateBanner: React.FC = () => {
               onClick={() => navigate('/central/login')}
               className="w-full lg:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-stone-950 font-bold text-base shadow-lg shadow-emerald-400/20 transition-all transform hover:-translate-y-0.5 cursor-pointer"
             >
-              <span>Explorar Plantilla en la App</span>
+              <span>Explorar Plantilla en la Web</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
