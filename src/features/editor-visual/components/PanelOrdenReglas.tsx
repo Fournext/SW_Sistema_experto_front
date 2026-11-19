@@ -17,6 +17,7 @@ export interface PanelOrdenReglasProps {
   onCambiarPrioridad?: (reglaId: string | number, nuevaPrioridad: number) => void;
   reglaSeleccionadaId?: string | number | null;
   isOpen?: boolean;
+  onOpen?: () => void;
   onClose?: () => void;
 }
 
@@ -27,12 +28,15 @@ export const PanelOrdenReglas: React.FC<PanelOrdenReglasProps> = ({
   onCambiarPrioridad,
   reglaSeleccionadaId,
   isOpen,
+  onOpen,
   onClose,
 }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const abierto = isOpen !== undefined ? isOpen : internalOpen;
   const setAbierto = (val: boolean) => {
-    if (!val && onClose) {
+    if (val && onOpen) {
+      onOpen();
+    } else if (!val && onClose) {
       onClose();
     }
     setInternalOpen(val);

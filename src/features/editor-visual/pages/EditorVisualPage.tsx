@@ -400,6 +400,7 @@ export const EditorCanvasContent: React.FC<{ sistemaId: string }> = ({ sistemaId
         <PanelOrdenReglas
           reglas={reglas}
           isOpen={mostrarPanelOrden}
+          onOpen={() => setMostrarPanelOrden(true)}
           onClose={() => setMostrarPanelOrden(false)}
           onSeleccionarRegla={handleSeleccionarRegla}
           onActualizarPrioridad={handleActualizarPrioridad}
