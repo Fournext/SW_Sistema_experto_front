@@ -39,18 +39,18 @@ export const PanelInspectorMemoria: React.FC<PanelInspectorMemoriaProps> = ({
   return (
     <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-900/70 shadow-lg">
       {/* Cabecera de Pestañas */}
-      <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/90 px-3 py-1.5 shrink-0">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/90 px-3 py-1.5 shrink-0">
+        <div className="flex items-center gap-1 overflow-x-auto">
           <button
             type="button"
             onClick={() => setPestañaActiva('memoria')}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
               pestañaActiva === 'memoria'
-                ? 'bg-indigo-950 text-indigo-300 border border-indigo-800/80 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                ? 'bg-indigo-950 text-indigo-300 border-indigo-800/80 shadow-sm'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
-            <Database className="h-3.5 w-3.5 text-indigo-400" />
+            <Database className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
             <span>Memoria & BH</span>
             {totalHechos > 0 && (
               <span className="rounded-full bg-indigo-900/80 px-1.5 py-0.2 text-[10px] text-indigo-200 font-mono">
@@ -62,13 +62,13 @@ export const PanelInspectorMemoria: React.FC<PanelInspectorMemoriaProps> = ({
           <button
             type="button"
             onClick={() => setPestañaActiva('reglas')}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
               pestañaActiva === 'reglas'
-                ? 'bg-indigo-950 text-indigo-300 border border-indigo-800/80 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                ? 'bg-indigo-950 text-indigo-300 border-indigo-800/80 shadow-sm'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
-            <GitCommit className="h-3.5 w-3.5 text-purple-400" />
+            <GitCommit className="h-3.5 w-3.5 text-purple-400 shrink-0" />
             <span>Reglas R</span>
             {totalReglas > 0 && (
               <span className="rounded-full bg-purple-900/80 px-1.5 py-0.2 text-[10px] text-purple-200 font-mono">
@@ -80,13 +80,13 @@ export const PanelInspectorMemoria: React.FC<PanelInspectorMemoriaProps> = ({
           <button
             type="button"
             onClick={() => setPestañaActiva('estructuras')}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+            className={`flex items-center gap-1.5 whitespace-nowrap shrink-0 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors duration-150 cursor-pointer ${
               pestañaActiva === 'estructuras'
-                ? 'bg-indigo-950 text-indigo-300 border border-indigo-800/80 shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                ? 'bg-indigo-950 text-indigo-300 border-indigo-800/80 shadow-sm'
+                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
             }`}
           >
-            <Layers className="h-3.5 w-3.5 text-cyan-400" />
+            <Layers className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
             <span>Pilas & Colas</span>
             {(totalHN > 0 || totalQ > 0) && (
               <span className="rounded-full bg-cyan-900/80 px-1.5 py-0.2 text-[10px] text-cyan-200 font-mono">
@@ -96,7 +96,7 @@ export const PanelInspectorMemoria: React.FC<PanelInspectorMemoriaProps> = ({
           </button>
         </div>
 
-        <span className="text-[10px] uppercase tracking-wider font-mono text-slate-500">
+        <span className="hidden xl:inline text-[10px] uppercase tracking-wider font-mono text-slate-500 shrink-0">
           Inspector
         </span>
       </div>
